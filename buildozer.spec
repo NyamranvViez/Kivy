@@ -11,7 +11,7 @@ icon.filename = %(source.dir)s/app_icon.png
 presplash.filename = %(source.dir)s/app_icon.png
 
 # ကွန်ရက်ပတ်သက်တာတွေ မလိုအောင် pillow သေချာထည့်ပေးထားပါတယ် (kivy version ကို pin ထားပါတယ်)
-requirements = python3, kivy==2.3.0, pillow
+requirements = python3,kivy==2.3.0,pillow
 
 orientation = portrait
 fullscreen = 0
@@ -20,7 +20,10 @@ android.allow_backup = True
 
 # SDK License များကို အလိုအလျောက် လက်ခံရန်
 android.accept_sdk_license = True
-
+android.api = 34
+android.minapi = 21
+android.ndk_api = 21
+android.ndk = 25b
 [buildozer]
 log_level = 2
 warn_on_root = 1
