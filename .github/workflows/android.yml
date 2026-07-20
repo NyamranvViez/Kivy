@@ -24,10 +24,10 @@ jobs:
 
     - name: Install dependencies
       run: |
-        sudo apt-get update
-        sudo apt-get install -y build-essential libffi-dev libssl-dev ffmpeg
-        pip install --upgrade pip
-        pip install buildozer cython==0.29.33
+            sudo apt-get update
+            sudo apt-get install -y build-essential libffi-dev libssl-dev ffmpeg
+            pip install --upgrade pip
+            pip install buildozer cython==0.29.33
 
     - name: Build with Buildozer
       run: buildozer -v android debug
