@@ -11,7 +11,7 @@ icon.filename = %(source.dir)s/app_icon.png
 presplash.filename = %(source.dir)s/app_icon.png
 
 # ကွန်ရက်ပတ်သက်တာတွေ မလိုအောင် pillow သေချာထည့်ပေးထားပါတယ် (kivy version ကို pin ထားပါတယ်)
-requirements = python3,kivy==2.2.1
+requirements = python3,kivy==2.3.0
 
 orientation = portrait
 fullscreen = 0
