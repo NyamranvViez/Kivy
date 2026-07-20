@@ -3,7 +3,7 @@ title = Bible Myanmar
 package.name = biblemyanmar
 package.domain = org.test
 source.dir = .
-source.include_exts = py,png,jpg,kv,atlas,ttf,txt,json,db
+source.include_exts = py,png,jpg,kv,xml,atlas,ttf,txt,json,db
 version = 1.5
 
 # အစ်ကို ထည့်ထားတဲ့ ပုံလမ်းကြောင်းများ
