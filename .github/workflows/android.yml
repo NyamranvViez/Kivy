@@ -8,12 +8,13 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-20.04
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout Source
+      uses: actions/checkout@v4
 
-    - name: Set up Python
+    - name: Setup Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.10'
@@ -21,13 +22,12 @@ jobs:
     - name: Install System Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev tk-dev libgdbm-compat-dev libc6-dev
-        pip3 install --user --upgrade buildozer cython virtualenv
+        sudo apt-get install -y openjdk-17-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev unzip zip
+        pip install --upgrade pip
+        pip install buildozer cython virtualenv
 
-    - name: Build with Buildozer
-      run: |
-        export PATH=$PATH:~/.local/bin
-        buildozer android debug
+    - name: Build APK (Auto-accept licenses)
+      run: yes | buildozer android debug
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
