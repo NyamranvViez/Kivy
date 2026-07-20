@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04  # ubuntu-latest အစား 22.04 ကိုသုံးတာက Buildozer အတွက် ပိုစိတ်ချရပါတယ်
+    runs-on: ubuntu-22.04
 
     steps:
     - name: Checkout Source
@@ -22,13 +22,12 @@ jobs:
     - name: Install System Dependencies
       run: |
         sudo apt-get update
-        # build-essential နဲ့ libbz2-dev ကို ထပ်ဖြည့်ထားပါတယ်
-        sudo apt-get install -y openjdk-17-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev unzip zip build-essential libbz2-dev
+        sudo apt-get install -y openjdk-17-jdk autoconf libtool pkg-config zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev unzip zip build-essential libbz2-dev cmake
         pip install --upgrade pip
-        # Cython 3.0 အထက်ဆိုရင် Kivy က Error တက်တတ်လို့ version 3 အောက်ကို သတ်မှတ်ပေးထားပါတယ်
-        pip install buildozer "cython<3.0.0" virtualenv
+        # Cython ကို Kivy နဲ့ အကိုက်ညီဆုံးဖြစ်တဲ့ 0.29.33 ကိုသာ အတိအကျသုံးပါမည်
+        pip install buildozer cython==0.29.33 virtualenv
 
-    - name: Build APK (Auto-accept licenses)
+    - name: Build APK
       run: yes | buildozer -v android debug
 
     - name: Upload APK Artifact
