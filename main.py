@@ -96,12 +96,7 @@ class AndroidBibleApp(App):
         self.dark_mode = False
         self.book_buttons_refs = []
         self._sync_scrolling = False 
-        
-        if platform == 'android':
-            from android.storage import app_storage_path
-            self.bibles_dir = os.path.join(app_storage_path(), "bibles")
-        else:
-            self.bibles_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bibles")
+        self.bibles_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bibles")
             
         if not os.path.exists(self.bibles_dir):
             os.makedirs(self.bibles_dir)
