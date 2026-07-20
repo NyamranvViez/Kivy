@@ -15,7 +15,7 @@ requirements = python3, kivy==2.3.0, pillow
 
 orientation = portrait
 fullscreen = 0
-android.archs = armeabi-v7a, arm64-v8a
+android.archs = arm64-v8a
 android.allow_backup = True
 
 # SDK License များကို အလိုအလျောက် လက်ခံရန်
