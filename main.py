@@ -433,9 +433,19 @@ class AndroidBibleApp(App):
                     display_b = BURMESE_BOOKS.get(b_name, b_name)
                     
                     btn_text = f"📖 {display_b} {c_num}:{v_num}\n{text_preview[:50]}..."
-                    btn = Button(text=btn_text, size_hint_y=None, height=dp(70), font_size='13sp', 
-                                 background_color=[0.25, 0.35, 0.45, 1], halign='left', valign='middle')
+                    btn = Button(
+                        text=btn_text, 
+                        size_hint_y=None, 
+                        font_size='13sp', 
+                        background_color=[0.25, 0.35, 0.45, 1], 
+                        halign='left', 
+                        valign='middle',
+                        padding=(dp(10), dp(10))
+                    )
+                    # Dynamic Height Binding
                     btn.bind(width=lambda s, w: setattr(s, 'text_size', (w - dp(20), None)))
+                    btn.bind(texture_size=lambda s, ts: setattr(s, 'height', ts[1] + dp(20)))
+                    
                     if os.path.exists(DEFAULT_FONT): btn.font_name = DEFAULT_FONT
                     btn.bind(on_press=lambda inst, b=b_name, c=c_num, v=v_num: self.go_to_search_target(b, c, v, popup))
                     layout.add_widget(btn)
@@ -463,9 +473,19 @@ class AndroidBibleApp(App):
                     note_text = note_data.get('note', '')
                     
                     btn_text = f"📝 {display_b} {c_num}:{verses}\n{note_text[:50]}..."
-                    btn = Button(text=btn_text, size_hint_y=None, height=dp(80), font_size='13sp', 
-                                 background_color=[0.2, 0.4, 0.3, 1], halign='left', valign='middle')
+                    btn = Button(
+                        text=btn_text, 
+                        size_hint_y=None, 
+                        font_size='13sp', 
+                        background_color=[0.2, 0.4, 0.3, 1], 
+                        halign='left', 
+                        valign='middle',
+                        padding=(dp(10), dp(10))
+                    )
+                    # Dynamic Height Binding
                     btn.bind(width=lambda s, w: setattr(s, 'text_size', (w - dp(20), None)))
+                    btn.bind(texture_size=lambda s, ts: setattr(s, 'height', ts[1] + dp(20)))
+                    
                     if os.path.exists(DEFAULT_FONT): btn.font_name = DEFAULT_FONT
                     btn.bind(on_press=lambda inst, b=b_name, c=c_num, v=verses: self.go_to_search_target(b, c, v, popup))
                     layout.add_widget(btn)
@@ -1040,7 +1060,9 @@ class AndroidBibleApp(App):
             _render_verses()
 
     def execute_bible_search(self, instance):
-        query = self.search_input.text.strip().lower()
+        # ရှာဖွေရာတွင် မြန်မာစာ Zero-width space ပြဿနာမရှိစေရန် ရှင်းလင်းခြင်း
+        query = self.search_input.text.strip().replace('\u200b', '')
+        query_lower = query.lower()
         active_ver = self.version_spinner_1.text
         if not query: return
         
@@ -1051,9 +1073,10 @@ class AndroidBibleApp(App):
             for b_name, chapters in self.all_bibles_data[active_ver].items():
                 for ch_num, verses in chapters.items():
                     for v_num, v_text in verses.items():
-                        # မြန်မာစာနှင့် အင်္ဂလိပ်စာများအတွက် အပြည့်အစုံ ရှာဖွေနိုင်ရန်
-                        if query in v_text.lower():
-                            results.append((b_name, ch_num, v_num, v_text))
+                        clean_v_text = v_text.replace('\u200b', '')
+                        # တိုက်စစ်ရာတွင် ပိုမိုတိကျစေရန်
+                        if query in clean_v_text or query_lower in clean_v_text.lower():
+                            results.append((b_name, ch_num, v_num, clean_v_text))
 
             is_limited = False
             if len(results) > 100:
@@ -1082,16 +1105,19 @@ class AndroidBibleApp(App):
                         text=btn_text, 
                         markup=True,
                         size_hint_y=None, 
-                        height=dp(65), 
-                        font_size='13sp', 
+                        font_size='14sp', 
                         background_color=[0.25, 0.35, 0.45, 1],
                         halign='left',
-                        valign='middle'
+                        valign='middle',
+                        padding=(dp(10), dp(10)) # စာသားနှင့်ဘောင် မထိစေရန်
                     )
+                    
+                    # Button အမြင့်ကို စာသားအရှည်ပေါ်မူတည်ပြီး Dynamic အပြောင်းအလဲလုပ်ပေးခြင်း
                     btn.bind(width=lambda s, w: setattr(s, 'text_size', (w - dp(20), None)))
+                    btn.bind(texture_size=lambda s, ts: setattr(s, 'height', ts[1] + dp(20)))
+                    
                     if os.path.exists(DEFAULT_FONT): btn.font_name = DEFAULT_FONT
                     
-                    # 💡 Search Result နှိပ်လျှင် သက်ဆိုင်ရာ Location သို့ တိုက်ရိုက်သွားရန် ချိတ်ဆက်ခြင်း
                     btn.bind(on_press=lambda inst, b=r[0], c=r[1], v=r[2]: self.go_to_search_target(b, c, v, popup))
                     results_layout.add_widget(btn)
                     
