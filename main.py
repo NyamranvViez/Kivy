@@ -2,7 +2,6 @@ import os
 import json
 import xml.etree.ElementTree as ET
 
-# Android ဖုန်းပေါ်ရောက်မှသာ မြန်မာစာ စာလုံးပေါင်းအစီအစဉ် မလွဲစေရန် Pango Provider ကို သုံးမည်
 from kivy.utils import platform
 if platform == 'android':
     os.environ['KIVY_TEXT'] = 'pango'
@@ -21,6 +20,8 @@ from kivy.uix.splitter import Splitter
 from kivy.graphics import Color, Rectangle
 from kivy.metrics import dp
 from kivy.uix.behaviors import ButtonBehavior
+from kivy.core.window import Window
+from kivy.clock import Clock
 
 DEFAULT_FONT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Pyidaungsu.ttf")
 
@@ -89,9 +90,8 @@ class VerseItem(ButtonBehavior, BoxLayout):
         self.apply_theme_colors(is_dark_mode)
 
         with self.canvas.before:
-            self.bg_color = Color(1, 1, 1, 1) 
+            self.bg_color = Color(*self.default_bg) 
             self.bg_rect = Rectangle(size=self.size, pos=self.pos)
-        self.bind(pos=self.update_rect, size=self.update_rect)
 
         cleaned_text = " ".join(verse_text.split())
         self.lbl = Label(
@@ -105,17 +105,19 @@ class VerseItem(ButtonBehavior, BoxLayout):
             font_size='16sp',
             line_height=1.4
         )
-        self.lbl.bind(width=lambda s, w: setattr(s, 'text_size', (w, None)))
-        self.lbl.bind(texture_size=lambda s, ts: setattr(s, 'height', ts[1]))
-        
         self.add_widget(self.lbl)
-        self.bind(minimum_height=self.setter('height'))
-        
         self.update_bg_color()
 
-    def update_rect(self, *args):
-        self.bg_rect.pos = self.pos
+    def on_size(self, *args):
         self.bg_rect.size = self.size
+        self.bg_rect.pos = self.pos
+        self.lbl.text_size = (max(dp(100), self.width - dp(30)), None)
+        self.lbl.texture_update()
+        self.lbl.height = self.lbl.texture_size[1]
+        self.height = max(dp(36), self.lbl.height + dp(16))
+
+    def on_pos(self, *args):
+        self.bg_rect.pos = self.pos
 
     def update_bg_color(self):
         if self.is_selected:
@@ -180,7 +182,8 @@ class AndroidBibleApp(App):
         self.title = "Myanmar and Ethnic Bibles"
         self.icon = "app_icon.png"
         
-        self.all_bibles_data = {}
+        self.all_bibles_data = {}      # Loaded bibles ကို သိမ်းထားမယ့် Cache
+        self.available_versions = []   # ရနိုင်တဲ့ ကျမ်းစာအမည်များ (Lazy Loading အတွက်)
         self.ordered_books = []
         self.selected_book = ""
         self.selected_chap = ""
@@ -199,11 +202,14 @@ class AndroidBibleApp(App):
         self.last_scroll_y_2 = 1.0
         self.toolbar_visible = True
         
+        Window.bind(on_keyboard=self.on_key_down)
+
         self.bibles_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bibles")
         if not os.path.exists(self.bibles_dir):
             os.makedirs(self.bibles_dir)
 
-        self.load_all_available_bibles()
+        # 💡 Optimization: ဖိုင်အားလုံးကို မဖတ်တော့ဘဲ နာမည်တွေကိုပဲ အရင်စကင်ဖတ်မယ် (Load time လုံးဝမကြာတော့ပါ)
+        self.scan_available_versions()
 
         self.main_layout = BoxLayout(orientation='vertical', spacing=5, padding=5)
         with self.main_layout.canvas.before:
@@ -213,7 +219,7 @@ class AndroidBibleApp(App):
         
         # --- Top Action Bar ---
         self.top_bar = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(45), spacing=3)
-        versions_list = list(self.all_bibles_data.keys()) if self.all_bibles_data else ["No Bible"]
+        versions_list = self.available_versions if self.available_versions else ["No Bible"]
         default_version = "BurmeseBible" if "BurmeseBible" in versions_list else versions_list[0]
         
         self.version_spinner_1 = Spinner(text=default_version, values=versions_list, size_hint_x=0.5, font_size='12sp', background_color=[0.2, 0.25, 0.3, 1])
@@ -319,8 +325,31 @@ class AndroidBibleApp(App):
         self.tool_bar.add_widget(self.close_view_btn)
         
         self.main_layout.add_widget(self.content_area)
+        
+        # 💡 Optimization: App စပွင့်တာနဲ့ Default Version တစ်ခုတည်းကိုပဲ Parse လုပ်ပါမယ်
+        if default_version != "No Bible":
+            self.load_bible_version(default_version)
+            
         self.refresh_books_grid()
         return self.main_layout
+
+    def on_key_down(self, window, key, *args):
+        if key in (27, 1001): 
+            for child in list(window.children):
+                if isinstance(child, Popup):
+                    child.dismiss()
+                    return True
+
+            if self.text_views_container.size_hint_y == 1:
+                self.show_navigation_menu(None)
+                return True
+
+            if hasattr(self, 'back_btn') and not self.back_btn.disabled:
+                self.go_back_to_books(None)
+                return True
+
+            return False
+        return False
 
     def load_userdata(self):
         self.highlights = {}
@@ -565,7 +594,6 @@ class AndroidBibleApp(App):
         if changed:
             self.show_bible_text_view()
 
-    # --- Section: Scroll Tracking for Single & Multi View Toolbars ---
     def track_scroll_y1(self, instance, value):
         self.check_scroll_direction(value, 1)
 
@@ -576,19 +604,19 @@ class AndroidBibleApp(App):
         last_y_attr = f'last_scroll_y_{view_num}'
         last_y = getattr(self, last_y_attr, 1.0)
         
-        # ထိပ်ဆုံးရောက်သွားရင် ပြန်ပေါ်မယ်
+        diff = current_y - last_y
+        if abs(diff) < 0.03 and 0.02 < current_y < 0.98:
+            return  
+
         if current_y >= 0.98:
             if not self.toolbar_visible: self.show_toolbar()
             setattr(self, last_y_attr, current_y)
             return
 
-        diff = current_y - last_y
-        
-        # သတ်မှတ်ထားသော limit (0.02) ထက်ကျော်လွန်မှသာ Show/Hide လုပ်ပြီး last_y ကို အသစ်မှတ်ပါမည်
-        if diff < -0.02:
+        if diff < -0.03:
             if self.toolbar_visible: self.hide_toolbar()
             setattr(self, last_y_attr, current_y)
-        elif diff > 0.02:
+        elif diff > 0.03:
             if not self.toolbar_visible: self.show_toolbar()
             setattr(self, last_y_attr, current_y)
 
@@ -622,61 +650,76 @@ class AndroidBibleApp(App):
             self.view1_scroll.scroll_y = value
             self._sync_scrolling = False
 
-    def load_all_available_bibles(self):
-        self.all_bibles_data.clear()
+    # 💡 1. ဖိုင်နာမည်များကိုသာ ရှာဖွေပြီး Spinner အတွက် ပြင်ဆင်ခြင်း
+    def scan_available_versions(self):
+        self.available_versions = []
         if not os.path.exists(self.bibles_dir): return
         try: files = [f for f in os.listdir(self.bibles_dir) if f.endswith('.xml')]
         except Exception: return
         
         for file in files:
             version_name = os.path.splitext(file)[0]
-            xml_path = os.path.join(self.bibles_dir, file)
-            try:
-                with open(xml_path, 'r', encoding='utf-8-sig') as f:
-                    xml_content = f.read()
-                root_element = ET.fromstring(xml_content)
-                self.all_bibles_data[version_name] = {}
-                temp_ordered_books = []
-                
-                all_books = root_element.findall('.//book') + root_element.findall('.//Book') + root_element.findall('.//b')
-                for idx, book in enumerate(all_books):
-                    book_name_attr = book.get('name') or book.get('n') or book.get('number') or book.get('id') or book.get('bcode')
-                    if book_name_attr and book_name_attr in BIBLE_BOOKS:
-                        book_name = BIBLE_BOOKS[book_name_attr]
-                    elif not book_name_attr:
-                        book_name = BIBLE_BOOKS.get(str(idx + 1), str(idx + 1))
-                    else:
-                        book_name = str(book_name_attr).strip()
-                    
-                    if book_name not in self.all_bibles_data[version_name]:
-                        self.all_bibles_data[version_name][book_name] = {}
-                        if book_name not in temp_ordered_books:
-                            temp_ordered_books.append(book_name)
-                    
-                    all_chapters = book.findall('.//chapter') + book.findall('.//Chapter') + book.findall('.//c')
-                    for c_idx, chapter in enumerate(all_chapters):
-                        ch_num = chapter.get('number') or chapter.get('n') or chapter.get('id') or str(c_idx + 1)
-                        ch_num_str = str(ch_num).strip()
-                        self.all_bibles_data[version_name][book_name][ch_num_str] = {}
-                        
-                        all_verses = chapter.findall('.//verse') + chapter.findall('.//Verse') + chapter.findall('.//v')
-                        for v_idx, verse in enumerate(all_verses):
-                            v_num = verse.get('number') or verse.get('n') or verse.get('id') or str(v_idx + 1)
-                            v_num_str = str(v_num).strip()
-                            
-                            v_text = "".join(verse.itertext()) if verse is not None else ""
-                            v_text = " ".join(v_text.split()) 
-                            
-                            self.all_bibles_data[version_name][book_name][ch_num_str][v_num_str] = v_text
-                
-                if temp_ordered_books and not self.ordered_books:
-                    self.ordered_books = temp_ordered_books
-            except Exception as e:
-                print(f"Error parsing {file}: {e}")
+            if version_name not in self.available_versions:
+                self.available_versions.append(version_name)
 
-        if not self.ordered_books and self.all_bibles_data:
-            first_ver = list(self.all_bibles_data.keys())[0]
-            self.ordered_books = list(self.all_bibles_data[first_ver].keys())
+        if not self.available_versions:
+            self.available_versions = ["No Bible"]
+
+    # 💡 2. လိုအပ်တဲ့ XML (တစ်အုပ်တည်း) ကိုသာ ဖတ်ပြီး Cache ထဲထည့်ခြင်း (Lazy Loading)
+    def load_bible_version(self, version_name):
+        # ဖတ်ပြီးသားဆိုရင် (သို့) Bible မရှိရင် ထပ်မဖတ်တော့ပါ
+        if version_name in self.all_bibles_data or version_name == "No Bible":
+            return
+            
+        xml_path = os.path.join(self.bibles_dir, f"{version_name}.xml")
+        if not os.path.exists(xml_path): return
+        
+        try:
+            with open(xml_path, 'r', encoding='utf-8-sig') as f:
+                xml_content = f.read()
+            root_element = ET.fromstring(xml_content)
+            self.all_bibles_data[version_name] = {}
+            temp_ordered_books = []
+            
+            all_books = root_element.findall('.//book') + root_element.findall('.//Book') + root_element.findall('.//b')
+            for idx, book in enumerate(all_books):
+                book_name_attr = book.get('name') or book.get('n') or book.get('number') or book.get('id') or book.get('bcode')
+                if book_name_attr and book_name_attr in BIBLE_BOOKS:
+                    book_name = BIBLE_BOOKS[book_name_attr]
+                elif not book_name_attr:
+                    book_name = BIBLE_BOOKS.get(str(idx + 1), str(idx + 1))
+                else:
+                    book_name = str(book_name_attr).strip()
+                
+                if book_name not in self.all_bibles_data[version_name]:
+                    self.all_bibles_data[version_name][book_name] = {}
+                    if book_name not in temp_ordered_books:
+                        temp_ordered_books.append(book_name)
+                
+                all_chapters = book.findall('.//chapter') + book.findall('.//Chapter') + book.findall('.//c')
+                for c_idx, chapter in enumerate(all_chapters):
+                    ch_num = chapter.get('number') or chapter.get('n') or chapter.get('id') or str(c_idx + 1)
+                    ch_num_str = str(ch_num).strip()
+                    self.all_bibles_data[version_name][book_name][ch_num_str] = {}
+                    
+                    all_verses = chapter.findall('.//verse') + chapter.findall('.//Verse') + chapter.findall('.//v')
+                    for v_idx, verse in enumerate(all_verses):
+                        v_num = verse.get('number') or verse.get('n') or verse.get('id') or str(v_idx + 1)
+                        v_num_str = str(v_num).strip()
+                        
+                        v_text = "".join(verse.itertext()) if verse is not None else ""
+                        v_text = " ".join(v_text.split()) 
+                        
+                        self.all_bibles_data[version_name][book_name][ch_num_str][v_num_str] = v_text
+            
+            if temp_ordered_books and not self.ordered_books:
+                self.ordered_books = temp_ordered_books
+        except Exception as e:
+            print(f"Error parsing {version_name}: {e}")
+
+        # ပထမဆုံး ဖတ်တဲ့အချိန်မှာ စာအုပ်အစီအစဉ်ကို မှတ်ထားပါမယ်
+        if not self.ordered_books and version_name in self.all_bibles_data:
+            self.ordered_books = list(self.all_bibles_data[version_name].keys())
 
     def refresh_books_grid(self):
         self.grid_content.clear_widgets()
@@ -685,6 +728,8 @@ class AndroidBibleApp(App):
         self.back_btn.disabled = True
         
         active_ver = self.version_spinner_1.text
+        self.load_bible_version(active_ver) # သေချာအောင် Load အရင်လုပ်မယ်
+        
         available_books = self.ordered_books
         if active_ver in self.all_bibles_data and self.all_bibles_data[active_ver]:
             available_books = list(self.all_bibles_data[active_ver].keys())
@@ -708,6 +753,8 @@ class AndroidBibleApp(App):
         self.back_btn.disabled = False
         
         active_ver = self.version_spinner_1.text
+        self.load_bible_version(active_ver)
+        
         if active_ver in self.all_bibles_data and self.selected_book in self.all_bibles_data[active_ver]:
             chapters = sorted(list(self.all_bibles_data[active_ver][self.selected_book].keys()), key=lambda x: int(x) if x.isdigit() else 0)
             for ch_num in chapters:
@@ -720,7 +767,7 @@ class AndroidBibleApp(App):
 
     def on_chapter_selected(self, ch_num):
         self.selected_chap = ch_num
-        self.show_bible_text_view()
+        Clock.schedule_once(lambda dt: self.show_bible_text_view(), 0)
 
     def go_back_to_books(self, instance):
         self.refresh_books_grid()
@@ -751,6 +798,8 @@ class AndroidBibleApp(App):
         if instance.state == 'down':
             if self.version_spinner_2 not in self.top_bar.children:
                 self.top_bar.add_widget(self.version_spinner_2)
+                # Multi-view ဖွင့်တာနဲ့ ဒုတိယ Version ကိုပါ Load လုပ်ပေးမယ်
+                self.load_bible_version(self.version_spinner_2.text)
         else:
             if self.version_spinner_2 in self.top_bar.children:
                 self.top_bar.remove_widget(self.version_spinner_2)
@@ -771,6 +820,7 @@ class AndroidBibleApp(App):
             self.text_views_container.add_widget(self.view1_scroll)
 
     def on_version_changed(self, spinner, text):
+        self.load_bible_version(text) # ချိန်းလိုက်တဲ့ Version ကို Load လုပ်မယ်
         if self.back_btn.disabled: self.refresh_books_grid()
         else: self.on_book_selected(self.selected_book)
         self.display_bible_verses()
@@ -820,8 +870,11 @@ class AndroidBibleApp(App):
         self.clear_selections()
         self.verse_item_refs.clear()
         
+        self.load_bible_version(self.version_spinner_1.text)
         self.populate_page(self.page_layout_1, self.version_spinner_1.text)
+        
         if self.multi_view_btn.state == 'down':
+            self.load_bible_version(self.version_spinner_2.text)
             self.populate_page(self.page_layout_2, self.version_spinner_2.text)
             
         self.view1_scroll.scroll_y = 1.0
@@ -830,6 +883,7 @@ class AndroidBibleApp(App):
     def execute_bible_search(self, instance):
         query = self.search_input.text.strip()
         active_ver = self.version_spinner_1.text
+        self.load_bible_version(active_ver)
         if not query or active_ver not in self.all_bibles_data: return
 
         results = []
