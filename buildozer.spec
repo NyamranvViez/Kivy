@@ -8,7 +8,8 @@ version = 1.5
 
 # အစ်ကို ထည့်ထားတဲ့ ပုံလမ်းကြောင်းများ
 icon.filename = %(source.dir)s/app_icon.png
-presplash.filename = %(source.dir)s/app_icon.png
+presplash.filename = %(source.dir)s/splash.png
+android.presplash_color = #FFFFFF
 
 # ကွန်ရက်ပတ်သက်တာတွေ မလိုအောင် pillow သေချာထည့်ပေးထားပါတယ် (kivy version ကို pin ထားပါတယ်)
 requirements = python3,kivy,pillow
