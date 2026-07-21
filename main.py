@@ -76,6 +76,21 @@ BURMESE_BOOKS = {
     "Revelation": "ဗျာဒိတ်ကျမ်း"
 }
 
+OT_BOOKS = [
+    "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy", "Joshua", "Judges", "Ruth",
+    "1 Samuel", "2 Samuel", "1 Kings", "2 Kings", "1 Chronicles", "2 Chronicles", "Ezra",
+    "Nehemiah", "Esther", "Job", "Psalms", "Proverbs", "Ecclesiastes", "Song of Solomon",
+    "Isaiah", "Jeremiah", "Lamentations", "Ezekiel", "Daniel", "Hosea", "Joel", "Amos",
+    "Obadiah", "Jonah", "Micah", "Nahum", "Habakkuk", "Zephaniah", "Haggai", "Zechariah", "Malachi"
+]
+
+NT_BOOKS = [
+    "Matthew", "Mark", "Luke", "John", "Acts", "Romans", "1 Corinthians", "2 Corinthians",
+    "Galatians", "Ephesians", "Philippians", "Colossians", "1 Thessalonians", "2 Thessalonians",
+    "1 Timothy", "2 Timothy", "Titus", "Philemon", "Hebrews", "James", "1 Peter", "2 Peter",
+    "1 John", "2 John", "3 John", "Jude", "Revelation"
+]
+
 class VerseItem(ButtonBehavior, BoxLayout):
     def __init__(self, verse_num, verse_text, app_ref, is_dark_mode=False, font_name=None, is_highlighted=False, **kwargs):
         super(VerseItem, self).__init__(**kwargs)
@@ -181,7 +196,7 @@ class SwipeableScrollView(ScrollView):
 
 class AndroidBibleApp(App):
     def build(self):
-        self.title = "Myanmar and Ethnic Bibles"
+        self.title = "Myanmar and Ethnic Bibles (Created by Ran Aung)"
         self.icon = "app_icon.png"
         
         self.all_bibles_data = {}      
@@ -195,6 +210,7 @@ class AndroidBibleApp(App):
         
         self.selected_verses = {}
         self.verse_item_refs = []
+        self.current_testament = "OT" # Default Old Testament
         
         self.highlights_file = os.path.join(self.user_data_dir, 'highlights.json')
         self.notes_file = os.path.join(self.user_data_dir, 'notes.json')
@@ -243,7 +259,10 @@ class AndroidBibleApp(App):
         self.top_bar.add_widget(self.theme_btn)
         self.main_layout.add_widget(self.top_bar)
         
-        # --- Search Box ---
+        # --- Content Body Layout ---
+        self.content_area = BoxLayout(orientation='vertical', spacing=5)
+        
+        # --- Search Box (Main Page သာ ပြရန်) ---
         self.search_bar = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(42), spacing=5)
         self.search_input = TextInput(hint_text="Search verses...", multiline=False, size_hint_x=0.78, font_size='14sp')
         if os.path.exists(DEFAULT_FONT): self.search_input.font_name = DEFAULT_FONT
@@ -252,10 +271,6 @@ class AndroidBibleApp(App):
         self.search_btn.bind(on_press=self.execute_bible_search)
         self.search_bar.add_widget(self.search_input)
         self.search_bar.add_widget(self.search_btn)
-        self.main_layout.add_widget(self.search_bar)
-        
-        # --- Content Body Layout ---
-        self.content_area = BoxLayout(orientation='vertical', spacing=5)
         
         # --- Navigation Panel ---
         self.nav_panel = BoxLayout(orientation='vertical', spacing=5)
@@ -274,6 +289,19 @@ class AndroidBibleApp(App):
         self.nav_top_bar.add_widget(self.btn_my_notes)
         self.nav_panel.add_widget(self.nav_top_bar)
         
+        # OT / NT Toggle Bar
+        self.testament_bar = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(38), spacing=5)
+        self.ot_btn = Button(text="Old Testament (ဟောင်း)", font_size='12sp', background_color=[0.15, 0.35, 0.5, 1])
+        self.nt_btn = Button(text="New Testament (သစ်)", font_size='12sp', background_color=[0.25, 0.25, 0.25, 1])
+        if os.path.exists(DEFAULT_FONT):
+            self.ot_btn.font_name = DEFAULT_FONT
+            self.nt_btn.font_name = DEFAULT_FONT
+        self.ot_btn.bind(on_press=lambda inst: self.switch_testament("OT"))
+        self.nt_btn.bind(on_press=lambda inst: self.switch_testament("NT"))
+        self.testament_bar.add_widget(self.ot_btn)
+        self.testament_bar.add_widget(self.nt_btn)
+        self.nav_panel.add_widget(self.testament_bar)
+        
         self.back_btn = Button(text="Back to Books", size_hint_y=None, height=dp(35), disabled=True, font_size='12sp', background_color=[0.12, 0.23, 0.35, 1])
         if os.path.exists(DEFAULT_FONT): self.back_btn.font_name = DEFAULT_FONT
         self.back_btn.bind(on_press=self.go_back_to_books)
@@ -285,6 +313,8 @@ class AndroidBibleApp(App):
         self.grid_scroll.add_widget(self.grid_content)
         self.nav_panel.add_widget(self.grid_scroll)
         
+        # ပထမအကြိမ်တွင် Search Bar ကိုပါ ထည့်သွင်းပြသမည်
+        self.content_area.add_widget(self.search_bar)
         self.content_area.add_widget(self.nav_panel)
         
         # --- Display Text Containers ---
@@ -327,13 +357,22 @@ class AndroidBibleApp(App):
         
         self.main_layout.add_widget(self.content_area)
         
-        # Load default version via Thread with callback to show books
         if default_version != "No Bible":
             self.load_bible_version(default_version, callback=self.refresh_books_grid)
         else:
             self.refresh_books_grid()
             
         return self.main_layout
+
+    def switch_testament(self, t_type):
+        self.current_testament = t_type
+        if t_type == "OT":
+            self.ot_btn.background_color = [0.15, 0.35, 0.5, 1]
+            self.nt_btn.background_color = [0.25, 0.25, 0.25, 1]
+        else:
+            self.ot_btn.background_color = [0.25, 0.25, 0.25, 1]
+            self.nt_btn.background_color = [0.15, 0.35, 0.5, 1]
+        self.refresh_books_grid()
 
     def on_key_down(self, window, key, *args):
         if key in (27, 1001): 
@@ -398,7 +437,7 @@ class AndroidBibleApp(App):
                                  background_color=[0.25, 0.35, 0.45, 1], halign='left', valign='middle')
                     btn.bind(width=lambda s, w: setattr(s, 'text_size', (w - dp(20), None)))
                     if os.path.exists(DEFAULT_FONT): btn.font_name = DEFAULT_FONT
-                    btn.bind(on_press=lambda inst, b=b_name, c=c_num: self.go_to_search_target(b, c, popup))
+                    btn.bind(on_press=lambda inst, b=b_name, c=c_num, v=v_num: self.go_to_search_target(b, c, v, popup))
                     layout.add_widget(btn)
 
         scroll.add_widget(layout)
@@ -428,7 +467,7 @@ class AndroidBibleApp(App):
                                  background_color=[0.2, 0.4, 0.3, 1], halign='left', valign='middle')
                     btn.bind(width=lambda s, w: setattr(s, 'text_size', (w - dp(20), None)))
                     if os.path.exists(DEFAULT_FONT): btn.font_name = DEFAULT_FONT
-                    btn.bind(on_press=lambda inst, b=b_name, c=c_num: self.go_to_search_target(b, c, popup))
+                    btn.bind(on_press=lambda inst, b=b_name, c=c_num, v=verses: self.go_to_search_target(b, c, v, popup))
                     layout.add_widget(btn)
 
         scroll.add_widget(layout)
@@ -666,14 +705,12 @@ class AndroidBibleApp(App):
         if not self.available_versions:
             self.available_versions = ["No Bible"]
 
-    # 💡 Optimization: Background Threading & Callback အသုံးပြုထားခြင်း
     def load_bible_version(self, version_name, callback=None):
         if version_name in self.all_bibles_data or version_name == "No Bible":
             if callback: callback()
             return
             
         if getattr(self, 'is_loading_xml', False):
-            # တခြားဖိုင်တစ်ခု ဖတ်နေချိန်ဖြစ်ပါက ခဏစောင့်ပြီး ပြန်ခေါ်ပေးမည်
             Clock.schedule_once(lambda dt: self.load_bible_version(version_name, callback), 0.5)
             return
             
@@ -734,13 +771,11 @@ class AndroidBibleApp(App):
                             
                             bible_data[book_name][ch_num_str][v_num_str] = v_text
                 
-                # Update main UI thread after parsing completes
                 Clock.schedule_once(lambda dt: self._apply_parsed_data(version_name, bible_data, temp_ordered_books, callback), 0)
             except Exception as e:
                 print(f"Error parsing {version_name}: {e}")
                 Clock.schedule_once(lambda dt: self._finish_loading(callback), 0)
                 
-        # Start background thread
         threading.Thread(target=parse_xml_thread, daemon=True).start()
         
     def _apply_parsed_data(self, version_name, bible_data, temp_ordered_books, callback):
@@ -756,7 +791,6 @@ class AndroidBibleApp(App):
         if callback:
             callback()
 
-    # 💡 Callback စနစ်ဖြင့် ချိတ်ဆက်ထားခြင်း
     def refresh_books_grid(self, *args):
         active_ver = self.version_spinner_1.text
         
@@ -766,9 +800,12 @@ class AndroidBibleApp(App):
             self.grid_content.cols = 2
             self.back_btn.disabled = True
             
-            available_books = self.ordered_books
-            if active_ver in self.all_bibles_data and self.all_bibles_data[active_ver]:
-                available_books = list(self.all_bibles_data[active_ver].keys())
+            target_list = OT_BOOKS if self.current_testament == "OT" else NT_BOOKS
+            available_books = [b for b in target_list if b in self.ordered_books]
+            if not available_books and self.ordered_books:
+                # Fallback if names differ slightly
+                mid = len(self.ordered_books) // 2
+                available_books = self.ordered_books[:mid] if self.current_testament == "OT" else self.ordered_books[mid:]
 
             for book_name in available_books:
                 bg_color = [0.2, 0.2, 0.2, 1] if self.dark_mode else [0.85, 0.85, 0.85, 1]
@@ -793,6 +830,12 @@ class AndroidBibleApp(App):
         self.grid_content.cols = 4
         self.back_btn.disabled = False
         
+        # Book ရွေးလိုက်ပြီဖြစ်၍ OT/NT Bar နဲ့ Search Bar ကို ဖျောက်မည်
+        if self.testament_bar.parent:
+            self.nav_panel.remove_widget(self.testament_bar)
+        if self.search_bar.parent:
+            self.content_area.remove_widget(self.search_bar)
+        
         active_ver = self.version_spinner_1.text
         
         def _render_chapters():
@@ -815,10 +858,34 @@ class AndroidBibleApp(App):
         self.selected_chap = ch_num
         Clock.schedule_once(lambda dt: self.show_bible_text_view(), 0)
 
+    def go_to_search_target(self, book, chapter, verse_num, popup_to_close):
+        if popup_to_close:
+            popup_to_close.dismiss()
+        self.selected_book = book
+        self.selected_chap = chapter
+        self.show_bible_text_view()
+
     def go_back_to_books(self, instance):
+        # Book list ပြန်လာချိန်တွင် Search Bar နှင့် OT/NT Bar ကို ပြန်ထည့်မည်
+        if self.search_bar.parent not in self.content_area.children:
+            self.content_area.remove_widget(self.nav_panel)
+            self.content_area.add_widget(self.search_bar)
+            self.content_area.add_widget(self.nav_panel)
+        if self.testament_bar.parent not in self.nav_panel.children:
+            self.nav_panel.remove_widget(self.back_btn)
+            self.nav_panel.remove_widget(self.grid_scroll)
+            self.nav_panel.add_widget(self.testament_bar)
+            self.nav_panel.add_widget(self.back_btn)
+            self.nav_panel.add_widget(self.grid_scroll)
         self.refresh_books_grid()
 
     def show_bible_text_view(self):
+        # Text view ရောက်လျှင် Search bar နှင့် OT/NT bar ကို လုံးဝဖျောက်ထားမည်
+        if self.search_bar.parent:
+            self.content_area.remove_widget(self.search_bar)
+        if self.testament_bar.parent:
+            self.nav_panel.remove_widget(self.testament_bar)
+            
         self.content_area.clear_widgets()
         self.content_area.add_widget(self.text_views_container)
         self.content_area.add_widget(self.tool_bar) 
@@ -835,6 +902,10 @@ class AndroidBibleApp(App):
             
         self.text_views_container.clear_widgets()
         self.content_area.clear_widgets()
+        
+        # Menu ပြန်လာလျှင် Search Bar ပြန်ထည့်မည် (OT/NT bar မပါတော့ဘဲ Chapter list သို့မဟုတ် Book list ပြရန်)
+        if self.search_bar.parent not in self.content_area.children:
+            self.content_area.add_widget(self.search_bar)
         self.content_area.add_widget(self.nav_panel)
         self.text_views_container.size_hint_y = None
         self.text_views_container.height = 0
@@ -886,7 +957,7 @@ class AndroidBibleApp(App):
 
     def populate_page(self, page_layout, version_name):
         page_layout.clear_widgets()
-        page_layout.current_load_id = time.time()  # Create unique ID for chunk loading session
+        page_layout.current_load_id = time.time()  
         
         if not version_name or version_name not in self.all_bibles_data: return
 
@@ -908,15 +979,13 @@ class AndroidBibleApp(App):
         
         if chapter_data:
             sorted_verses = sorted(list(chapter_data.keys()), key=lambda x: int(x) if x.isdigit() else 0)
-            # 💡 Start Chunk Loading
             self._load_verses_chunk(page_layout, sorted_verses, chapter_data, selected_font, version_name, page_layout.current_load_id, 0)
 
-    # 💡 Optimization: Chunk Loading Logic
     def _load_verses_chunk(self, page_layout, sorted_verses, chapter_data, selected_font, version_name, load_id, current_idx):
         if not hasattr(page_layout, 'current_load_id') or page_layout.current_load_id != load_id:
-            return  # အခန်းအသစ်ပြောင်းသွားပါက Loading ဆက်မလုပ်တော့ပါ
+            return  
             
-        chunk_size = 15  # တစ်ကြိမ်လျှင် ကျမ်းပိုဒ် ၁၅ ပိုဒ်သာ ထည့်မည်
+        chunk_size = 15  
         end_idx = min(current_idx + chunk_size, len(sorted_verses))
         
         for i in range(current_idx, end_idx):
@@ -971,7 +1040,7 @@ class AndroidBibleApp(App):
             _render_verses()
 
     def execute_bible_search(self, instance):
-        query = self.search_input.text.strip()
+        query = self.search_input.text.strip().lower()
         active_ver = self.version_spinner_1.text
         if not query: return
         
@@ -982,10 +1051,10 @@ class AndroidBibleApp(App):
             for b_name, chapters in self.all_bibles_data[active_ver].items():
                 for ch_num, verses in chapters.items():
                     for v_num, v_text in verses.items():
-                        if query.lower() in v_text.lower():
+                        # မြန်မာစာနှင့် အင်္ဂလိပ်စာများအတွက် အပြည့်အစုံ ရှာဖွေနိုင်ရန်
+                        if query in v_text.lower():
                             results.append((b_name, ch_num, v_num, v_text))
 
-            # 💡 Search Freezing မဖြစ်ရန် ရလဒ်များလျှင် ကန့်သတ်ခြင်း
             is_limited = False
             if len(results) > 100:
                 results = results[:100]
@@ -1007,25 +1076,33 @@ class AndroidBibleApp(App):
                     
                 for r in results:
                     b_display = BURMESE_BOOKS.get(r[0], r[0]) if active_ver == "BurmeseBible" else r[0]
-                    btn = Button(text=f"{b_display} {r[1]}:{r[2]} -> {r[3][:30]}...", size_hint_y=None, height=dp(50), font_size='13sp', background_color=[0.25, 0.35, 0.45, 1])
+                    btn_text = f"[b]{b_display} {r[1]}:{r[2]}[/b]\n{r[3]}"
+                    
+                    btn = Button(
+                        text=btn_text, 
+                        markup=True,
+                        size_hint_y=None, 
+                        height=dp(65), 
+                        font_size='13sp', 
+                        background_color=[0.25, 0.35, 0.45, 1],
+                        halign='left',
+                        valign='middle'
+                    )
+                    btn.bind(width=lambda s, w: setattr(s, 'text_size', (w - dp(20), None)))
                     if os.path.exists(DEFAULT_FONT): btn.font_name = DEFAULT_FONT
-                    btn.bind(on_press=lambda inst, b=r[0], c=r[1]: self.go_to_search_target(b, c, popup))
+                    
+                    # 💡 Search Result နှိပ်လျှင် သက်ဆိုင်ရာ Location သို့ တိုက်ရိုက်သွားရန် ချိတ်ဆက်ခြင်း
+                    btn.bind(on_press=lambda inst, b=r[0], c=r[1], v=r[2]: self.go_to_search_target(b, c, v, popup))
                     results_layout.add_widget(btn)
                     
             scroll.add_widget(results_layout)
-            popup = Popup(title=f"Search Results", content=scroll, size_hint=(0.95, 0.8))
+            popup = Popup(title=f"Search Results ({len(results)})", content=scroll, size_hint=(0.95, 0.8))
             popup.open()
             
         if active_ver not in self.all_bibles_data:
             self.load_bible_version(active_ver, callback=_do_search)
         else:
             _do_search()
-
-    def go_to_search_target(self, book, chapter, popup_to_close):
-        popup_to_close.dismiss()
-        self.selected_book = book
-        self.selected_chap = chapter
-        self.show_bible_text_view()
 
     def toggle_app_theme(self, instance):
         self.dark_mode = not self.dark_mode
