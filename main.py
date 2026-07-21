@@ -1,6 +1,8 @@
 import os
 import json
 import xml.etree.ElementTree as ET
+import threading
+import time
 
 from kivy.utils import platform
 if platform == 'android':
@@ -182,8 +184,8 @@ class AndroidBibleApp(App):
         self.title = "Myanmar and Ethnic Bibles"
         self.icon = "app_icon.png"
         
-        self.all_bibles_data = {}      # Loaded bibles ကို သိမ်းထားမယ့် Cache
-        self.available_versions = []   # ရနိုင်တဲ့ ကျမ်းစာအမည်များ (Lazy Loading အတွက်)
+        self.all_bibles_data = {}      
+        self.available_versions = []   
         self.ordered_books = []
         self.selected_book = ""
         self.selected_chap = ""
@@ -208,7 +210,6 @@ class AndroidBibleApp(App):
         if not os.path.exists(self.bibles_dir):
             os.makedirs(self.bibles_dir)
 
-        # 💡 Optimization: ဖိုင်အားလုံးကို မဖတ်တော့ဘဲ နာမည်တွေကိုပဲ အရင်စကင်ဖတ်မယ် (Load time လုံးဝမကြာတော့ပါ)
         self.scan_available_versions()
 
         self.main_layout = BoxLayout(orientation='vertical', spacing=5, padding=5)
@@ -326,11 +327,12 @@ class AndroidBibleApp(App):
         
         self.main_layout.add_widget(self.content_area)
         
-        # 💡 Optimization: App စပွင့်တာနဲ့ Default Version တစ်ခုတည်းကိုပဲ Parse လုပ်ပါမယ်
+        # Load default version via Thread with callback to show books
         if default_version != "No Bible":
-            self.load_bible_version(default_version)
+            self.load_bible_version(default_version, callback=self.refresh_books_grid)
+        else:
+            self.refresh_books_grid()
             
-        self.refresh_books_grid()
         return self.main_layout
 
     def on_key_down(self, window, key, *args):
@@ -650,7 +652,6 @@ class AndroidBibleApp(App):
             self.view1_scroll.scroll_y = value
             self._sync_scrolling = False
 
-    # 💡 1. ဖိုင်နာမည်များကိုသာ ရှာဖွေပြီး Spinner အတွက် ပြင်ဆင်ခြင်း
     def scan_available_versions(self):
         self.available_versions = []
         if not os.path.exists(self.bibles_dir): return
@@ -665,85 +666,125 @@ class AndroidBibleApp(App):
         if not self.available_versions:
             self.available_versions = ["No Bible"]
 
-    # 💡 2. လိုအပ်တဲ့ XML (တစ်အုပ်တည်း) ကိုသာ ဖတ်ပြီး Cache ထဲထည့်ခြင်း (Lazy Loading)
-    def load_bible_version(self, version_name):
-        # ဖတ်ပြီးသားဆိုရင် (သို့) Bible မရှိရင် ထပ်မဖတ်တော့ပါ
+    # 💡 Optimization: Background Threading & Callback အသုံးပြုထားခြင်း
+    def load_bible_version(self, version_name, callback=None):
         if version_name in self.all_bibles_data or version_name == "No Bible":
+            if callback: callback()
             return
             
-        xml_path = os.path.join(self.bibles_dir, f"{version_name}.xml")
-        if not os.path.exists(xml_path): return
-        
-        try:
-            with open(xml_path, 'r', encoding='utf-8-sig') as f:
-                xml_content = f.read()
-            root_element = ET.fromstring(xml_content)
-            self.all_bibles_data[version_name] = {}
-            temp_ordered_books = []
+        if getattr(self, 'is_loading_xml', False):
+            # တခြားဖိုင်တစ်ခု ဖတ်နေချိန်ဖြစ်ပါက ခဏစောင့်ပြီး ပြန်ခေါ်ပေးမည်
+            Clock.schedule_once(lambda dt: self.load_bible_version(version_name, callback), 0.5)
+            return
             
-            all_books = root_element.findall('.//book') + root_element.findall('.//Book') + root_element.findall('.//b')
-            for idx, book in enumerate(all_books):
-                book_name_attr = book.get('name') or book.get('n') or book.get('number') or book.get('id') or book.get('bcode')
-                if book_name_attr and book_name_attr in BIBLE_BOOKS:
-                    book_name = BIBLE_BOOKS[book_name_attr]
-                elif not book_name_attr:
-                    book_name = BIBLE_BOOKS.get(str(idx + 1), str(idx + 1))
-                else:
-                    book_name = str(book_name_attr).strip()
+        self.is_loading_xml = True
+        
+        self.loading_popup = Popup(
+            title="Loading Bible", 
+            content=Label(text=f"Parsing {version_name}...\nPlease wait."), 
+            size_hint=(0.8, 0.3), 
+            auto_dismiss=False
+        )
+        if os.path.exists(DEFAULT_FONT):
+            self.loading_popup.content.font_name = DEFAULT_FONT
+        self.loading_popup.open()
+        
+        def parse_xml_thread():
+            xml_path = os.path.join(self.bibles_dir, f"{version_name}.xml")
+            if not os.path.exists(xml_path):
+                Clock.schedule_once(lambda dt: self._finish_loading(callback), 0)
+                return
                 
-                if book_name not in self.all_bibles_data[version_name]:
-                    self.all_bibles_data[version_name][book_name] = {}
-                    if book_name not in temp_ordered_books:
-                        temp_ordered_books.append(book_name)
+            try:
+                with open(xml_path, 'r', encoding='utf-8-sig') as f:
+                    xml_content = f.read()
+                root_element = ET.fromstring(xml_content)
                 
-                all_chapters = book.findall('.//chapter') + book.findall('.//Chapter') + book.findall('.//c')
-                for c_idx, chapter in enumerate(all_chapters):
-                    ch_num = chapter.get('number') or chapter.get('n') or chapter.get('id') or str(c_idx + 1)
-                    ch_num_str = str(ch_num).strip()
-                    self.all_bibles_data[version_name][book_name][ch_num_str] = {}
+                bible_data = {}
+                temp_ordered_books = []
+                
+                all_books = root_element.findall('.//book') + root_element.findall('.//Book') + root_element.findall('.//b')
+                for idx, book in enumerate(all_books):
+                    book_name_attr = book.get('name') or book.get('n') or book.get('number') or book.get('id') or book.get('bcode')
+                    if book_name_attr and book_name_attr in BIBLE_BOOKS:
+                        book_name = BIBLE_BOOKS[book_name_attr]
+                    elif not book_name_attr:
+                        book_name = BIBLE_BOOKS.get(str(idx + 1), str(idx + 1))
+                    else:
+                        book_name = str(book_name_attr).strip()
                     
-                    all_verses = chapter.findall('.//verse') + chapter.findall('.//Verse') + chapter.findall('.//v')
-                    for v_idx, verse in enumerate(all_verses):
-                        v_num = verse.get('number') or verse.get('n') or verse.get('id') or str(v_idx + 1)
-                        v_num_str = str(v_num).strip()
+                    if book_name not in bible_data:
+                        bible_data[book_name] = {}
+                        if book_name not in temp_ordered_books:
+                            temp_ordered_books.append(book_name)
+                    
+                    all_chapters = book.findall('.//chapter') + book.findall('.//Chapter') + book.findall('.//c')
+                    for c_idx, chapter in enumerate(all_chapters):
+                        ch_num = chapter.get('number') or chapter.get('n') or chapter.get('id') or str(c_idx + 1)
+                        ch_num_str = str(ch_num).strip()
+                        bible_data[book_name][ch_num_str] = {}
                         
-                        v_text = "".join(verse.itertext()) if verse is not None else ""
-                        v_text = " ".join(v_text.split()) 
-                        
-                        self.all_bibles_data[version_name][book_name][ch_num_str][v_num_str] = v_text
-            
-            if temp_ordered_books and not self.ordered_books:
-                self.ordered_books = temp_ordered_books
-        except Exception as e:
-            print(f"Error parsing {version_name}: {e}")
-
-        # ပထမဆုံး ဖတ်တဲ့အချိန်မှာ စာအုပ်အစီအစဉ်ကို မှတ်ထားပါမယ်
-        if not self.ordered_books and version_name in self.all_bibles_data:
-            self.ordered_books = list(self.all_bibles_data[version_name].keys())
-
-    def refresh_books_grid(self):
-        self.grid_content.clear_widgets()
-        self.book_buttons_refs.clear()
-        self.grid_content.cols = 2
-        self.back_btn.disabled = True
+                        all_verses = chapter.findall('.//verse') + chapter.findall('.//Verse') + chapter.findall('.//v')
+                        for v_idx, verse in enumerate(all_verses):
+                            v_num = verse.get('number') or verse.get('n') or verse.get('id') or str(v_idx + 1)
+                            v_num_str = str(v_num).strip()
+                            
+                            v_text = "".join(verse.itertext()) if verse is not None else ""
+                            v_text = " ".join(v_text.split()) 
+                            
+                            bible_data[book_name][ch_num_str][v_num_str] = v_text
+                
+                # Update main UI thread after parsing completes
+                Clock.schedule_once(lambda dt: self._apply_parsed_data(version_name, bible_data, temp_ordered_books, callback), 0)
+            except Exception as e:
+                print(f"Error parsing {version_name}: {e}")
+                Clock.schedule_once(lambda dt: self._finish_loading(callback), 0)
+                
+        # Start background thread
+        threading.Thread(target=parse_xml_thread, daemon=True).start()
         
+    def _apply_parsed_data(self, version_name, bible_data, temp_ordered_books, callback):
+        self.all_bibles_data[version_name] = bible_data
+        if temp_ordered_books and not self.ordered_books:
+            self.ordered_books = temp_ordered_books
+        self._finish_loading(callback)
+        
+    def _finish_loading(self, callback):
+        self.is_loading_xml = False
+        if hasattr(self, 'loading_popup') and self.loading_popup:
+            self.loading_popup.dismiss()
+        if callback:
+            callback()
+
+    # 💡 Callback စနစ်ဖြင့် ချိတ်ဆက်ထားခြင်း
+    def refresh_books_grid(self, *args):
         active_ver = self.version_spinner_1.text
-        self.load_bible_version(active_ver) # သေချာအောင် Load အရင်လုပ်မယ်
         
-        available_books = self.ordered_books
-        if active_ver in self.all_bibles_data and self.all_bibles_data[active_ver]:
-            available_books = list(self.all_bibles_data[active_ver].keys())
-
-        for book_name in available_books:
-            bg_color = [0.2, 0.2, 0.2, 1] if self.dark_mode else [0.85, 0.85, 0.85, 1]
-            text_color = [1, 1, 1, 1] 
-            display_name = BURMESE_BOOKS.get(book_name, book_name) if active_ver == "BurmeseBible" else book_name
+        def _render_books():
+            self.grid_content.clear_widgets()
+            self.book_buttons_refs.clear()
+            self.grid_content.cols = 2
+            self.back_btn.disabled = True
             
-            btn = Button(text=display_name, size_hint_y=None, height=dp(48), font_size='13sp', background_color=bg_color, color=text_color)
-            if os.path.exists(DEFAULT_FONT): btn.font_name = DEFAULT_FONT
-            btn.bind(on_press=lambda instance, b=book_name: self.on_book_selected(b))
-            self.grid_content.add_widget(btn)
-            self.book_buttons_refs.append(btn)
+            available_books = self.ordered_books
+            if active_ver in self.all_bibles_data and self.all_bibles_data[active_ver]:
+                available_books = list(self.all_bibles_data[active_ver].keys())
+
+            for book_name in available_books:
+                bg_color = [0.2, 0.2, 0.2, 1] if self.dark_mode else [0.85, 0.85, 0.85, 1]
+                text_color = [1, 1, 1, 1] 
+                display_name = BURMESE_BOOKS.get(book_name, book_name) if active_ver == "BurmeseBible" else book_name
+                
+                btn = Button(text=display_name, size_hint_y=None, height=dp(48), font_size='13sp', background_color=bg_color, color=text_color)
+                if os.path.exists(DEFAULT_FONT): btn.font_name = DEFAULT_FONT
+                btn.bind(on_press=lambda instance, b=book_name: self.on_book_selected(b))
+                self.grid_content.add_widget(btn)
+                self.book_buttons_refs.append(btn)
+                
+        if active_ver not in self.all_bibles_data:
+            self.load_bible_version(active_ver, callback=_render_books)
+        else:
+            _render_books()
 
     def on_book_selected(self, book_name):
         self.selected_book = book_name
@@ -753,17 +794,22 @@ class AndroidBibleApp(App):
         self.back_btn.disabled = False
         
         active_ver = self.version_spinner_1.text
-        self.load_bible_version(active_ver)
         
-        if active_ver in self.all_bibles_data and self.selected_book in self.all_bibles_data[active_ver]:
-            chapters = sorted(list(self.all_bibles_data[active_ver][self.selected_book].keys()), key=lambda x: int(x) if x.isdigit() else 0)
-            for ch_num in chapters:
-                bg_color = [0.25, 0.25, 0.25, 1] if self.dark_mode else [0.8, 0.8, 0.8, 1]
-                btn = Button(text=str(ch_num), size_hint_y=None, height=dp(48), font_size='14sp', background_color=bg_color, color=[1, 1, 1, 1])
-                if os.path.exists(DEFAULT_FONT): btn.font_name = DEFAULT_FONT
-                btn.bind(on_press=lambda instance, c=ch_num: self.on_chapter_selected(c))
-                self.grid_content.add_widget(btn)
-                self.book_buttons_refs.append(btn)
+        def _render_chapters():
+            if active_ver in self.all_bibles_data and self.selected_book in self.all_bibles_data[active_ver]:
+                chapters = sorted(list(self.all_bibles_data[active_ver][self.selected_book].keys()), key=lambda x: int(x) if x.isdigit() else 0)
+                for ch_num in chapters:
+                    bg_color = [0.25, 0.25, 0.25, 1] if self.dark_mode else [0.8, 0.8, 0.8, 1]
+                    btn = Button(text=str(ch_num), size_hint_y=None, height=dp(48), font_size='14sp', background_color=bg_color, color=[1, 1, 1, 1])
+                    if os.path.exists(DEFAULT_FONT): btn.font_name = DEFAULT_FONT
+                    btn.bind(on_press=lambda instance, c=ch_num: self.on_chapter_selected(c))
+                    self.grid_content.add_widget(btn)
+                    self.book_buttons_refs.append(btn)
+                    
+        if active_ver not in self.all_bibles_data:
+            self.load_bible_version(active_ver, callback=_render_chapters)
+        else:
+            _render_chapters()
 
     def on_chapter_selected(self, ch_num):
         self.selected_chap = ch_num
@@ -795,16 +841,22 @@ class AndroidBibleApp(App):
         self.on_book_selected(self.selected_book)
 
     def toggle_multi_view(self, instance):
+        def _finish_toggle():
+            self.update_text_views_layout()
+            self.display_bible_verses()
+            
         if instance.state == 'down':
             if self.version_spinner_2 not in self.top_bar.children:
                 self.top_bar.add_widget(self.version_spinner_2)
-                # Multi-view ဖွင့်တာနဲ့ ဒုတိယ Version ကိုပါ Load လုပ်ပေးမယ်
-                self.load_bible_version(self.version_spinner_2.text)
+                ver2 = self.version_spinner_2.text
+                if ver2 not in self.all_bibles_data:
+                    self.load_bible_version(ver2, callback=_finish_toggle)
+                else:
+                    _finish_toggle()
         else:
             if self.version_spinner_2 in self.top_bar.children:
                 self.top_bar.remove_widget(self.version_spinner_2)
-        self.update_text_views_layout()
-        self.display_bible_verses()
+            _finish_toggle()
 
     def update_text_views_layout(self):
         if self.view1_scroll.parent: self.view1_scroll.parent.remove_widget(self.view1_scroll)
@@ -820,13 +872,22 @@ class AndroidBibleApp(App):
             self.text_views_container.add_widget(self.view1_scroll)
 
     def on_version_changed(self, spinner, text):
-        self.load_bible_version(text) # ချိန်းလိုက်တဲ့ Version ကို Load လုပ်မယ်
-        if self.back_btn.disabled: self.refresh_books_grid()
-        else: self.on_book_selected(self.selected_book)
-        self.display_bible_verses()
+        def _after_version_changed():
+            if self.back_btn.disabled: self.refresh_books_grid()
+            else: self.on_book_selected(self.selected_book)
+            
+            if self.text_views_container.size_hint_y == 1:
+                self.display_bible_verses()
+                
+        if text not in self.all_bibles_data:
+            self.load_bible_version(text, callback=_after_version_changed)
+        else:
+            _after_version_changed()
 
     def populate_page(self, page_layout, version_name):
         page_layout.clear_widgets()
+        page_layout.current_load_id = time.time()  # Create unique ID for chunk loading session
+        
         if not version_name or version_name not in self.all_bibles_data: return
 
         selected_font = get_font_for_version(version_name)
@@ -847,71 +908,118 @@ class AndroidBibleApp(App):
         
         if chapter_data:
             sorted_verses = sorted(list(chapter_data.keys()), key=lambda x: int(x) if x.isdigit() else 0)
-            for v_key in sorted_verses:
-                v_text = chapter_data[v_key]
-                global_key = f"{self.selected_book}_{self.selected_chap}_{v_key}"
-                is_hl = (global_key in self.highlights)
-                
-                v_item = VerseItem(
-                    verse_num=v_key, 
-                    verse_text=v_text, 
-                    app_ref=self, 
-                    is_dark_mode=self.dark_mode,
-                    font_name=selected_font,
-                    is_highlighted=is_hl
-                )
-                page_layout.add_widget(v_item)
+            # 💡 Start Chunk Loading
+            self._load_verses_chunk(page_layout, sorted_verses, chapter_data, selected_font, version_name, page_layout.current_load_id, 0)
+
+    # 💡 Optimization: Chunk Loading Logic
+    def _load_verses_chunk(self, page_layout, sorted_verses, chapter_data, selected_font, version_name, load_id, current_idx):
+        if not hasattr(page_layout, 'current_load_id') or page_layout.current_load_id != load_id:
+            return  # အခန်းအသစ်ပြောင်းသွားပါက Loading ဆက်မလုပ်တော့ပါ
+            
+        chunk_size = 15  # တစ်ကြိမ်လျှင် ကျမ်းပိုဒ် ၁၅ ပိုဒ်သာ ထည့်မည်
+        end_idx = min(current_idx + chunk_size, len(sorted_verses))
+        
+        for i in range(current_idx, end_idx):
+            v_key = sorted_verses[i]
+            v_text = chapter_data[v_key]
+            global_key = f"{self.selected_book}_{self.selected_chap}_{v_key}"
+            is_hl = (global_key in self.highlights)
+            
+            v_item = VerseItem(
+                verse_num=v_key, 
+                verse_text=v_text, 
+                app_ref=self, 
+                is_dark_mode=self.dark_mode,
+                font_name=selected_font,
+                is_highlighted=is_hl
+            )
+            page_layout.add_widget(v_item)
+            if v_item not in self.verse_item_refs:
                 self.verse_item_refs.append(v_item)
+                
+        if end_idx < len(sorted_verses):
+            Clock.schedule_once(lambda dt: self._load_verses_chunk(page_layout, sorted_verses, chapter_data, selected_font, version_name, load_id, end_idx), 0)
 
     def display_bible_verses(self):
         if not self.selected_book or not self.selected_chap:
             return
-        
-        self.clear_selections()
-        self.verse_item_refs.clear()
-        
-        self.load_bible_version(self.version_spinner_1.text)
-        self.populate_page(self.page_layout_1, self.version_spinner_1.text)
-        
-        if self.multi_view_btn.state == 'down':
-            self.load_bible_version(self.version_spinner_2.text)
-            self.populate_page(self.page_layout_2, self.version_spinner_2.text)
             
-        self.view1_scroll.scroll_y = 1.0
-        self.view2_scroll.scroll_y = 1.0
+        def _render_verses():
+            self.clear_selections()
+            self.verse_item_refs.clear()
+            self.populate_page(self.page_layout_1, self.version_spinner_1.text)
+            
+            if self.multi_view_btn.state == 'down':
+                def _render_view2():
+                    self.populate_page(self.page_layout_2, self.version_spinner_2.text)
+                    self.view1_scroll.scroll_y = 1.0
+                    self.view2_scroll.scroll_y = 1.0
+                    
+                ver2 = self.version_spinner_2.text
+                if ver2 not in self.all_bibles_data:
+                    self.load_bible_version(ver2, callback=_render_view2)
+                else:
+                    _render_view2()
+            else:
+                self.view1_scroll.scroll_y = 1.0
+                self.view2_scroll.scroll_y = 1.0
+                
+        ver1 = self.version_spinner_1.text
+        if ver1 not in self.all_bibles_data:
+            self.load_bible_version(ver1, callback=_render_verses)
+        else:
+            _render_verses()
 
     def execute_bible_search(self, instance):
         query = self.search_input.text.strip()
         active_ver = self.version_spinner_1.text
-        self.load_bible_version(active_ver)
-        if not query or active_ver not in self.all_bibles_data: return
-
-        results = []
-        for b_name, chapters in self.all_bibles_data[active_ver].items():
-            for ch_num, verses in chapters.items():
-                for v_num, v_text in verses.items():
-                    if query.lower() in v_text.lower():
-                        results.append((b_name, ch_num, v_num, v_text))
-
-        scroll = ScrollView()
-        results_layout = GridLayout(cols=1, spacing=5, size_hint_y=None)
-        results_layout.bind(minimum_height=results_layout.setter('height'))
+        if not query: return
         
-        if not results:
-            lbl = Label(text=f"No results found for '{query}'", size_hint_y=None, height=dp(40))
-            if os.path.exists(DEFAULT_FONT): lbl.font_name = DEFAULT_FONT
-            results_layout.add_widget(lbl)
-        else:
-            for r in results:
-                b_display = BURMESE_BOOKS.get(r[0], r[0]) if active_ver == "BurmeseBible" else r[0]
-                btn = Button(text=f"{b_display} {r[1]}:{r[2]} -> {r[3][:30]}...", size_hint_y=None, height=dp(50), font_size='13sp', background_color=[0.25, 0.35, 0.45, 1])
-                if os.path.exists(DEFAULT_FONT): btn.font_name = DEFAULT_FONT
-                btn.bind(on_press=lambda inst, b=r[0], c=r[1]: self.go_to_search_target(b, c, popup))
-                results_layout.add_widget(btn)
+        def _do_search():
+            if active_ver not in self.all_bibles_data: return
+            
+            results = []
+            for b_name, chapters in self.all_bibles_data[active_ver].items():
+                for ch_num, verses in chapters.items():
+                    for v_num, v_text in verses.items():
+                        if query.lower() in v_text.lower():
+                            results.append((b_name, ch_num, v_num, v_text))
+
+            # 💡 Search Freezing မဖြစ်ရန် ရလဒ်များလျှင် ကန့်သတ်ခြင်း
+            is_limited = False
+            if len(results) > 100:
+                results = results[:100]
+                is_limited = True
                 
-        scroll.add_widget(results_layout)
-        popup = Popup(title=f"Search Results ({len(results)})", content=scroll, size_hint=(0.95, 0.8))
-        popup.open()
+            scroll = ScrollView()
+            results_layout = GridLayout(cols=1, spacing=5, size_hint_y=None)
+            results_layout.bind(minimum_height=results_layout.setter('height'))
+            
+            if not results:
+                lbl = Label(text=f"No results found for '{query}'", size_hint_y=None, height=dp(40))
+                if os.path.exists(DEFAULT_FONT): lbl.font_name = DEFAULT_FONT
+                results_layout.add_widget(lbl)
+            else:
+                if is_limited:
+                    lbl = Label(text=f"Showing top 100 results for '{query}'", size_hint_y=None, height=dp(30), color=[1, 0.5, 0, 1])
+                    if os.path.exists(DEFAULT_FONT): lbl.font_name = DEFAULT_FONT
+                    results_layout.add_widget(lbl)
+                    
+                for r in results:
+                    b_display = BURMESE_BOOKS.get(r[0], r[0]) if active_ver == "BurmeseBible" else r[0]
+                    btn = Button(text=f"{b_display} {r[1]}:{r[2]} -> {r[3][:30]}...", size_hint_y=None, height=dp(50), font_size='13sp', background_color=[0.25, 0.35, 0.45, 1])
+                    if os.path.exists(DEFAULT_FONT): btn.font_name = DEFAULT_FONT
+                    btn.bind(on_press=lambda inst, b=r[0], c=r[1]: self.go_to_search_target(b, c, popup))
+                    results_layout.add_widget(btn)
+                    
+            scroll.add_widget(results_layout)
+            popup = Popup(title=f"Search Results", content=scroll, size_hint=(0.95, 0.8))
+            popup.open()
+            
+        if active_ver not in self.all_bibles_data:
+            self.load_bible_version(active_ver, callback=_do_search)
+        else:
+            _do_search()
 
     def go_to_search_target(self, book, chapter, popup_to_close):
         popup_to_close.dismiss()
