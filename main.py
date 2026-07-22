@@ -15,7 +15,7 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
-from kivy.uix.spinner import Spinner
+from kivy.uix.spinner import Spinner, SpinnerOption 
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.popup import Popup
 from kivy.uix.splitter import Splitter  
@@ -24,6 +24,7 @@ from kivy.metrics import dp
 from kivy.uix.behaviors import ButtonBehavior
 from kivy.core.window import Window
 from kivy.clock import Clock
+from kivy.effects.scroll import ScrollEffect 
 
 DEFAULT_FONT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Pyidaungsu.ttf")
 
@@ -90,6 +91,19 @@ NT_BOOKS = [
     "1 Timothy", "2 Timothy", "Titus", "Philemon", "Hebrews", "James", "1 Peter", "2 Peter",
     "1 John", "2 John", "3 John", "Jude", "Revelation"
 ]
+
+class CustomSpinnerOption(SpinnerOption):
+    def __init__(self, **kwargs):
+        super(CustomSpinnerOption, self).__init__(**kwargs)
+        self.height = dp(45)
+        self.text_size = (self.width, None)
+        self.halign = 'center'
+        self.valign = 'middle'
+        if os.path.exists(DEFAULT_FONT):
+            self.font_name = DEFAULT_FONT
+
+    def on_size(self, *args):
+        self.text_size = (self.width - dp(10), None)
 
 class VerseItem(ButtonBehavior, BoxLayout):
     def __init__(self, verse_num, verse_text, app_ref, is_dark_mode=False, font_name=None, is_highlighted=False, **kwargs):
@@ -172,7 +186,7 @@ class BiblePageLayout(GridLayout):
 
 class SwipeableScrollView(ScrollView):
     def __init__(self, app_ref=None, **kwargs):
-        super(SwipeableScrollView, self).__init__(**kwargs)
+        super(SwipeableScrollView, self).__init__(effect_cls=ScrollEffect, **kwargs)
         self.app_ref = app_ref
 
     def on_touch_down(self, touch):
@@ -210,7 +224,7 @@ class AndroidBibleApp(App):
         
         self.selected_verses = {}
         self.verse_item_refs = []
-        self.current_testament = "OT" # Default Old Testament
+        self.current_testament = "OT" 
         
         self.highlights_file = os.path.join(self.user_data_dir, 'highlights.json')
         self.notes_file = os.path.join(self.user_data_dir, 'notes.json')
@@ -239,7 +253,7 @@ class AndroidBibleApp(App):
         versions_list = self.available_versions if self.available_versions else ["No Bible"]
         default_version = "BurmeseBible" if "BurmeseBible" in versions_list else versions_list[0]
         
-        self.version_spinner_1 = Spinner(text=default_version, values=versions_list, size_hint_x=0.5, font_size='12sp', background_color=[0.2, 0.25, 0.3, 1])
+        self.version_spinner_1 = Spinner(text=default_version, values=versions_list, option_cls=CustomSpinnerOption, size_hint_x=0.5, font_size='12sp', background_color=[0.2, 0.25, 0.3, 1])
         if os.path.exists(DEFAULT_FONT): self.version_spinner_1.font_name = DEFAULT_FONT
         self.version_spinner_1.bind(text=self.on_version_changed)
         self.top_bar.add_widget(self.version_spinner_1)
@@ -249,7 +263,7 @@ class AndroidBibleApp(App):
         self.multi_view_btn.bind(on_press=self.toggle_multi_view)
         self.top_bar.add_widget(self.multi_view_btn)
         
-        self.version_spinner_2 = Spinner(text=default_version, values=versions_list, size_hint_x=0.35, font_size='12sp', background_color=[0.2, 0.25, 0.3, 1])
+        self.version_spinner_2 = Spinner(text=default_version, values=versions_list, option_cls=CustomSpinnerOption, size_hint_x=0.35, font_size='12sp', background_color=[0.2, 0.25, 0.3, 1])
         if os.path.exists(DEFAULT_FONT): self.version_spinner_2.font_name = DEFAULT_FONT
         self.version_spinner_2.bind(text=self.on_version_changed)
         
@@ -262,7 +276,7 @@ class AndroidBibleApp(App):
         # --- Content Body Layout ---
         self.content_area = BoxLayout(orientation='vertical', spacing=5)
         
-        # --- Search Box (Main Page သာ ပြရန်) ---
+        # --- Search Box ---
         self.search_bar = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(42), spacing=5)
         self.search_input = TextInput(hint_text="Search verses...", multiline=False, size_hint_x=0.78, font_size='14sp')
         if os.path.exists(DEFAULT_FONT): self.search_input.font_name = DEFAULT_FONT
@@ -287,9 +301,7 @@ class AndroidBibleApp(App):
         self.btn_my_notes.bind(on_press=self.show_notes_list)
         self.nav_top_bar.add_widget(self.btn_my_highlights)
         self.nav_top_bar.add_widget(self.btn_my_notes)
-        self.nav_panel.add_widget(self.nav_top_bar)
         
-        # OT / NT Toggle Bar
         self.testament_bar = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(38), spacing=5)
         self.ot_btn = Button(text="Old Testament (ဟောင်း)", font_size='12sp', background_color=[0.15, 0.35, 0.5, 1])
         self.nt_btn = Button(text="New Testament (သစ်)", font_size='12sp', background_color=[0.25, 0.25, 0.25, 1])
@@ -300,20 +312,31 @@ class AndroidBibleApp(App):
         self.nt_btn.bind(on_press=lambda inst: self.switch_testament("NT"))
         self.testament_bar.add_widget(self.ot_btn)
         self.testament_bar.add_widget(self.nt_btn)
-        self.nav_panel.add_widget(self.testament_bar)
         
-        self.back_btn = Button(text="Back to Books", size_hint_y=None, height=dp(35), disabled=True, font_size='12sp', background_color=[0.12, 0.23, 0.35, 1])
+        self.back_btn = Button(text="Back to Books", size_hint_y=None, height=dp(35), font_size='12sp', background_color=[0.12, 0.23, 0.35, 1])
         if os.path.exists(DEFAULT_FONT): self.back_btn.font_name = DEFAULT_FONT
         self.back_btn.bind(on_press=self.go_back_to_books)
-        self.nav_panel.add_widget(self.back_btn)
         
-        self.grid_scroll = ScrollView()
+        self.grid_scroll = ScrollView(effect_cls=ScrollEffect)
+        
+        # --- Modification for Top Alignment ---
+        self.grid_wrapper = BoxLayout(orientation='vertical', size_hint_y=None)
+        
         self.grid_content = GridLayout(cols=2, spacing=8, size_hint_y=None)
         self.grid_content.bind(minimum_height=self.grid_content.setter('height'))
-        self.grid_scroll.add_widget(self.grid_content)
-        self.nav_panel.add_widget(self.grid_scroll)
         
-        # ပထမအကြိမ်တွင် Search Bar ကိုပါ ထည့်သွင်းပြသမည်
+        self.grid_wrapper.add_widget(self.grid_content)
+        self.grid_wrapper.add_widget(BoxLayout(size_hint_y=1)) # Spacer to push grid up
+        
+        def _update_grid_wrapper_height(*args):
+            self.grid_wrapper.height = max(self.grid_wrapper.minimum_height, self.grid_scroll.height)
+            
+        self.grid_wrapper.bind(minimum_height=_update_grid_wrapper_height)
+        self.grid_scroll.bind(height=_update_grid_wrapper_height)
+        
+        self.grid_scroll.add_widget(self.grid_wrapper)
+        # ---------------------------------------
+        
         self.content_area.add_widget(self.search_bar)
         self.content_area.add_widget(self.nav_panel)
         
@@ -385,7 +408,7 @@ class AndroidBibleApp(App):
                 self.show_navigation_menu(None)
                 return True
 
-            if hasattr(self, 'back_btn') and not self.back_btn.disabled:
+            if self.back_btn in self.nav_panel.children:
                 self.go_back_to_books(None)
                 return True
 
@@ -417,7 +440,7 @@ class AndroidBibleApp(App):
             print(f"Error saving user data: {e}")
 
     def show_highlights_list(self, instance):
-        scroll = ScrollView()
+        scroll = ScrollView(effect_cls=ScrollEffect)
         layout = GridLayout(cols=1, spacing=5, size_hint_y=None, padding=5)
         layout.bind(minimum_height=layout.setter('height'))
 
@@ -442,7 +465,6 @@ class AndroidBibleApp(App):
                         valign='middle',
                         padding=(dp(10), dp(10))
                     )
-                    # Dynamic Height Binding
                     btn.bind(width=lambda s, w: setattr(s, 'text_size', (w - dp(20), None)))
                     btn.bind(texture_size=lambda s, ts: setattr(s, 'height', ts[1] + dp(20)))
                     
@@ -455,7 +477,7 @@ class AndroidBibleApp(App):
         popup.open()
 
     def show_notes_list(self, instance):
-        scroll = ScrollView()
+        scroll = ScrollView(effect_cls=ScrollEffect)
         layout = GridLayout(cols=1, spacing=5, size_hint_y=None, padding=5)
         layout.bind(minimum_height=layout.setter('height'))
 
@@ -482,7 +504,6 @@ class AndroidBibleApp(App):
                         valign='middle',
                         padding=(dp(10), dp(10))
                     )
-                    # Dynamic Height Binding
                     btn.bind(width=lambda s, w: setattr(s, 'text_size', (w - dp(20), None)))
                     btn.bind(texture_size=lambda s, ts: setattr(s, 'height', ts[1] + dp(20)))
                     
@@ -812,18 +833,21 @@ class AndroidBibleApp(App):
             callback()
 
     def refresh_books_grid(self, *args):
+        self.nav_panel.clear_widgets()
+        self.nav_panel.add_widget(self.nav_top_bar)
+        self.nav_panel.add_widget(self.testament_bar)
+        self.nav_panel.add_widget(self.grid_scroll)
+        
         active_ver = self.version_spinner_1.text
         
         def _render_books():
             self.grid_content.clear_widgets()
             self.book_buttons_refs.clear()
             self.grid_content.cols = 2
-            self.back_btn.disabled = True
             
             target_list = OT_BOOKS if self.current_testament == "OT" else NT_BOOKS
             available_books = [b for b in target_list if b in self.ordered_books]
             if not available_books and self.ordered_books:
-                # Fallback if names differ slightly
                 mid = len(self.ordered_books) // 2
                 available_books = self.ordered_books[:mid] if self.current_testament == "OT" else self.ordered_books[mid:]
 
@@ -848,11 +872,12 @@ class AndroidBibleApp(App):
         self.grid_content.clear_widgets()
         self.book_buttons_refs.clear()
         self.grid_content.cols = 4
-        self.back_btn.disabled = False
         
-        # Book ရွေးလိုက်ပြီဖြစ်၍ OT/NT Bar နဲ့ Search Bar ကို ဖျောက်မည်
-        if self.testament_bar.parent:
-            self.nav_panel.remove_widget(self.testament_bar)
+        self.nav_panel.clear_widgets()
+        self.nav_panel.add_widget(self.nav_top_bar)
+        self.nav_panel.add_widget(self.back_btn)
+        self.nav_panel.add_widget(self.grid_scroll)
+        
         if self.search_bar.parent:
             self.content_area.remove_widget(self.search_bar)
         
@@ -886,25 +911,15 @@ class AndroidBibleApp(App):
         self.show_bible_text_view()
 
     def go_back_to_books(self, instance):
-        # Book list ပြန်လာချိန်တွင် Search Bar နှင့် OT/NT Bar ကို ပြန်ထည့်မည်
         if self.search_bar.parent not in self.content_area.children:
             self.content_area.remove_widget(self.nav_panel)
             self.content_area.add_widget(self.search_bar)
             self.content_area.add_widget(self.nav_panel)
-        if self.testament_bar.parent not in self.nav_panel.children:
-            self.nav_panel.remove_widget(self.back_btn)
-            self.nav_panel.remove_widget(self.grid_scroll)
-            self.nav_panel.add_widget(self.testament_bar)
-            self.nav_panel.add_widget(self.back_btn)
-            self.nav_panel.add_widget(self.grid_scroll)
         self.refresh_books_grid()
 
     def show_bible_text_view(self):
-        # Text view ရောက်လျှင် Search bar နှင့် OT/NT bar ကို လုံးဝဖျောက်ထားမည်
         if self.search_bar.parent:
             self.content_area.remove_widget(self.search_bar)
-        if self.testament_bar.parent:
-            self.nav_panel.remove_widget(self.testament_bar)
             
         self.content_area.clear_widgets()
         self.content_area.add_widget(self.text_views_container)
@@ -923,7 +938,6 @@ class AndroidBibleApp(App):
         self.text_views_container.clear_widgets()
         self.content_area.clear_widgets()
         
-        # Menu ပြန်လာလျှင် Search Bar ပြန်ထည့်မည် (OT/NT bar မပါတော့ဘဲ Chapter list သို့မဟုတ် Book list ပြရန်)
         if self.search_bar.parent not in self.content_area.children:
             self.content_area.add_widget(self.search_bar)
         self.content_area.add_widget(self.nav_panel)
@@ -964,8 +978,10 @@ class AndroidBibleApp(App):
 
     def on_version_changed(self, spinner, text):
         def _after_version_changed():
-            if self.back_btn.disabled: self.refresh_books_grid()
-            else: self.on_book_selected(self.selected_book)
+            if self.back_btn not in self.nav_panel.children: 
+                self.refresh_books_grid()
+            else: 
+                self.on_book_selected(self.selected_book)
             
             if self.text_views_container.size_hint_y == 1:
                 self.display_bible_verses()
@@ -977,7 +993,6 @@ class AndroidBibleApp(App):
 
     def populate_page(self, page_layout, version_name):
         page_layout.clear_widgets()
-        page_layout.current_load_id = time.time()  
         
         if not version_name or version_name not in self.all_bibles_data: return
 
@@ -999,35 +1014,23 @@ class AndroidBibleApp(App):
         
         if chapter_data:
             sorted_verses = sorted(list(chapter_data.keys()), key=lambda x: int(x) if x.isdigit() else 0)
-            self._load_verses_chunk(page_layout, sorted_verses, chapter_data, selected_font, version_name, page_layout.current_load_id, 0)
-
-    def _load_verses_chunk(self, page_layout, sorted_verses, chapter_data, selected_font, version_name, load_id, current_idx):
-        if not hasattr(page_layout, 'current_load_id') or page_layout.current_load_id != load_id:
-            return  
             
-        chunk_size = 15  
-        end_idx = min(current_idx + chunk_size, len(sorted_verses))
-        
-        for i in range(current_idx, end_idx):
-            v_key = sorted_verses[i]
-            v_text = chapter_data[v_key]
-            global_key = f"{self.selected_book}_{self.selected_chap}_{v_key}"
-            is_hl = (global_key in self.highlights)
-            
-            v_item = VerseItem(
-                verse_num=v_key, 
-                verse_text=v_text, 
-                app_ref=self, 
-                is_dark_mode=self.dark_mode,
-                font_name=selected_font,
-                is_highlighted=is_hl
-            )
-            page_layout.add_widget(v_item)
-            if v_item not in self.verse_item_refs:
-                self.verse_item_refs.append(v_item)
+            for v_key in sorted_verses:
+                v_text = chapter_data[v_key]
+                global_key = f"{self.selected_book}_{self.selected_chap}_{v_key}"
+                is_hl = (global_key in self.highlights)
                 
-        if end_idx < len(sorted_verses):
-            Clock.schedule_once(lambda dt: self._load_verses_chunk(page_layout, sorted_verses, chapter_data, selected_font, version_name, load_id, end_idx), 0)
+                v_item = VerseItem(
+                    verse_num=v_key, 
+                    verse_text=v_text, 
+                    app_ref=self, 
+                    is_dark_mode=self.dark_mode,
+                    font_name=selected_font,
+                    is_highlighted=is_hl
+                )
+                page_layout.add_widget(v_item)
+                if v_item not in self.verse_item_refs:
+                    self.verse_item_refs.append(v_item)
 
     def display_bible_verses(self):
         if not self.selected_book or not self.selected_chap:
@@ -1060,7 +1063,6 @@ class AndroidBibleApp(App):
             _render_verses()
 
     def execute_bible_search(self, instance):
-        # ရှာဖွေရာတွင် မြန်မာစာ Zero-width space ပြဿနာမရှိစေရန် ရှင်းလင်းခြင်း
         query = self.search_input.text.strip().replace('\u200b', '')
         query_lower = query.lower()
         active_ver = self.version_spinner_1.text
@@ -1074,7 +1076,6 @@ class AndroidBibleApp(App):
                 for ch_num, verses in chapters.items():
                     for v_num, v_text in verses.items():
                         clean_v_text = v_text.replace('\u200b', '')
-                        # တိုက်စစ်ရာတွင် ပိုမိုတိကျစေရန်
                         if query in clean_v_text or query_lower in clean_v_text.lower():
                             results.append((b_name, ch_num, v_num, clean_v_text))
 
@@ -1083,7 +1084,7 @@ class AndroidBibleApp(App):
                 results = results[:100]
                 is_limited = True
                 
-            scroll = ScrollView()
+            scroll = ScrollView(effect_cls=ScrollEffect)
             results_layout = GridLayout(cols=1, spacing=5, size_hint_y=None)
             results_layout.bind(minimum_height=results_layout.setter('height'))
             
@@ -1109,10 +1110,9 @@ class AndroidBibleApp(App):
                         background_color=[0.25, 0.35, 0.45, 1],
                         halign='left',
                         valign='middle',
-                        padding=(dp(10), dp(10)) # စာသားနှင့်ဘောင် မထိစေရန်
+                        padding=(dp(10), dp(10)) 
                     )
                     
-                    # Button အမြင့်ကို စာသားအရှည်ပေါ်မူတည်ပြီး Dynamic အပြောင်းအလဲလုပ်ပေးခြင်း
                     btn.bind(width=lambda s, w: setattr(s, 'text_size', (w - dp(20), None)))
                     btn.bind(texture_size=lambda s, ts: setattr(s, 'height', ts[1] + dp(20)))
                     
