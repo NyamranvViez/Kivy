@@ -62,18 +62,18 @@ BIBLE_BOOKS = {
 
 BURMESE_BOOKS = {
     "Genesis": "ကမ္ဘာဦးကျမ်း", "Exodus": "ထွက်မြောက်ရာကျမ်း", "Leviticus": "ဝတ်ပြုရာကျမ်း", "Numbers": "တောလည်ရာကျမ်း", "Deuteronomy": "တရားဟောရာကျမ်း",
-    "Joshua": "ယောရှုမှတ်တမ်း", "Judges": "တရားသူကြီးမှတ်တမ်း", "Ruth": "ရုသဝတ္ထု", "1 Samuel": "ဓမ္မရာဇဝင်ပထမစောင်", "2 Samuel": "ဓမ္မရာဇဝင်ဒုတိယစောင်",
-    "1 Kings": "ဓမ္မရာဇဝင်တတိယစောင်", "2 Kings": "ဓမ္မရာဇဝင်စတုတ္ထစောင်", "1 Chronicles": "ရာဇဝင်ချုပ်ပထမစောင်", "2 Chronicles": "ရာဇဝင်ချုပ်ဒုတိယစောင်", "Ezra": "ဧဇရမှတ်တမ်း",
-    "Nehemiah": "နေဟမိမှတ်တမ်း", "Esther": "ဧသတာဝတ္ထု", "Job": "ယောဘဝတ္ထု", "Psalms": "ဆာလံကျမ်း", "Proverbs": "သုတ္တံကျမ်း",
-    "Ecclesiastes": "ဒေသနာကျမ်း", "Song of Solomon": "ရှောလမုန်သီချင်း", "Isaiah": "ဟေရှာယအနာဂတ္တိကျမ်း", "Jeremiah": "ယေရမိအနာဂတ္တိကျမ်း", "Lamentations": "ယေရမိမြည်တမ်းစောင်",
+    "Joshua": "ယောရှုမှတ်စာ", "Judges": "တရားသူကြီးမှတ်စာ", "Ruth": "ရုသဝတ္ထု", "1 Samuel": "ဓမ္မရာဇဝင်ပထမစောင်", "2 Samuel": "ဓမ္မရာဇဝင်ဒုတိယစောင်",
+    "1 Kings": "ဓမ္မရာဇဝင်တတိယစောင်", "2 Kings": "ဓမ္မရာဇဝင်စတုတ္ထစောင်", "1 Chronicles": "ရာဇဝင်ချုပ်ပထမစောင်", "2 Chronicles": "ရာဇဝင်ချုပ်ဒုတိယစောင်", "Ezra": "ဧဇရမှတ်စာ",
+    "Nehemiah": "နေဟမိမှတ်စာ", "Esther": "ဧသတာဝတ္ထု", "Job": "ယောဘဝတ္ထု", "Psalms": "ဆာလံကျမ်း", "Proverbs": "သုတ္တံကျမ်း",
+    "Ecclesiastes": "ဒေသနာကျမ်း", "Song of Solomon": "ရှောလမုန်သီချင်း", "Isaiah": "ဟေရှာယအနာဂတ္တိကျမ်း", "Jeremiah": "ယေရမိအနာဂတ္တိကျမ်း", "Lamentations": "ယေရမိမြည်တမ်း",
     "Ezekiel": "ယေဇကျေလအနာဂတ္တိကျမ်း", "Daniel": "ဒံယေလအနာဂတ္တိကျမ်း", "Hosea": "ဟောရှေအနာဂတ္တိကျမ်း", "Joel": "ယောလအနာဂတ္တိကျမ်း", "Amos": "အာမုတ်အနာဂတ္တိကျမ်း",
     "Obadiah": "ဩဗဒိအနာဂတ္တိကျမ်း", "Jonah": "ယောနဝတ္ထု", "Micah": "မိက္ခာအနာဂတ္တိကျမ်း", "Nahum": "နာဟုံအနာဂတ္တိကျမ်း", "Habakkuk": "ဟဗက္ကုက်အနာဂတ္တိကျမ်း",
     "Zephaniah": "ဇေဖနိအနာဂတ္တိကျမ်း", "Haggai": "ဟဂ္ဂဲအနာဂတ္တိကျမ်း", "Zechariah": "ဇာခရိအနာဂတ္တိကျမ်း", "Malachi": "မာလခိအနာဂတ္တိကျမ်း", "Matthew": "ရှင်မဿဲခရစ်ဝင်",
     "Mark": "ရှင်မာကုခရစ်ဝင်", "Luke": "ရှင်လုကာခရစ်ဝင်", "John": "ရှင်ယောဟန်ခရစ်ဝင်", "Acts": "တမန်တော်ဝတ္ထု", "Romans": "ရောမသြဝါဒစာ",
-    "1 Corinthians": "ကောရိန္သုပထမစောင်", "2 Corinthians": "ကောရိန္သုဒုတိယစောင်", "Galatians": "ဂလာတိစာ", "Ephesians": "ဧဖက်စာ", "Philippians": "ဖိလိပ္ပိစာ",
-    "Colossians": "ကောလောသဲစာ", "1 Thessalonians": "သက်သာလောနိတ်ပထမစောင်", "2 Thessalonians": "သက်သာလောနိတ်ဒုတိယစောင်", "1 Timothy": "တိမောသေပထမစောင်", "2 Timothy": "တိမောသေဒုတိယစောင်",
-    "Titus": "တိတုစာ", "Philemon": "ဖိလေမုန်စာ", "Hebrews": "ဟေဗြဲစာ", "James": "ယာကုပ်စာ", "1 Peter": "ပေတရုပထမစောင်",
-    "2 Peter": "ပေတရုဒုတိယစောင်", "1 John": "ယောဟန်ပထမစောင်", "2 John": "ယောဟန်ဒုတိယစောင်", "3 John": "ယောဟန်တတိယစောင်", "Jude": "ယုဒစာ",
+    "1 Corinthians": "ကောရိန္သုပထမစောင်", "2 Corinthians": "ကောရိန္သုဒုတိယစောင်", "Galatians": "ဂလာတိသြဝါဒစာ", "Ephesians": "ဧဖက်သြဝါဒစာ", "Philippians": "ဖိလိပ္ပိသြဝါဒစာ",
+    "Colossians": "ကောလောသဲသြဝါဒစာ", "1 Thessalonians": "သက်သာလောနိတ်ပထမစောင်", "2 Thessalonians": "သက်သာလောနိတ်ဒုတိယစောင်", "1 Timothy": "တိမောသေပထမစောင်", "2 Timothy": "တိမောသေဒုတိယစောင်",
+    "Titus": "တိတုသြဝါဒစာ", "Philemon": "ဖိလေမုန်သြဝါဒစာ", "Hebrews": "ဟေဗြဲသြဝါဒစာ", "James": "ရှင်ယာကုပ်သြဝါဒစာ", "1 Peter": "ရှင်ပေတရုပထမစောင်",
+    "2 Peter": "ရှင်ပေတရုဒုတိယစောင်", "1 John": "ရှင်ယောဟန်ပထမစောင်", "2 John": "ရှင်ယောဟန်ဒုတိယစောင်", "3 John": "ရှင်ယောဟန်တတိယစောင်", "Jude": "ရှင်ယုဒသြဝါဒစာ",
     "Revelation": "ဗျာဒိတ်ကျမ်း"
 }
 
@@ -123,6 +123,8 @@ class VerseItem(ButtonBehavior, BoxLayout):
         with self.canvas.before:
             self.bg_color = Color(*self.default_bg) 
             self.bg_rect = Rectangle(size=self.size, pos=self.pos)
+            
+        self.bind(pos=self._update_rect, size=self._update_rect)
 
         cleaned_text = " ".join(verse_text.split())
         self.lbl = Label(
@@ -136,19 +138,17 @@ class VerseItem(ButtonBehavior, BoxLayout):
             font_size='16sp',
             line_height=1.4
         )
+        
+        self.lbl.bind(width=lambda s, w: setattr(s, 'text_size', (w, None)))
+        self.lbl.bind(texture_size=lambda s, ts: setattr(s, 'height', ts[1]))
+        self.lbl.bind(height=lambda s, h: setattr(self, 'height', max(dp(36), h + dp(16))))
+        
         self.add_widget(self.lbl)
         self.update_bg_color()
 
-    def on_size(self, *args):
-        self.bg_rect.size = self.size
-        self.bg_rect.pos = self.pos
-        self.lbl.text_size = (max(dp(100), self.width - dp(30)), None)
-        self.lbl.texture_update()
-        self.lbl.height = self.lbl.texture_size[1]
-        self.height = max(dp(36), self.lbl.height + dp(16))
-
-    def on_pos(self, *args):
-        self.bg_rect.pos = self.pos
+    def _update_rect(self, instance, value):
+        self.bg_rect.pos = instance.pos
+        self.bg_rect.size = instance.size
 
     def update_bg_color(self):
         if self.is_selected:
@@ -248,7 +248,6 @@ class AndroidBibleApp(App):
             self.root_bg_rect = Rectangle(size=self.main_layout.size, pos=self.main_layout.pos)
         self.main_layout.bind(pos=self.update_root_rect, size=self.update_root_rect)
         
-        # --- Top Action Bar ---
         self.top_bar = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(45), spacing=3)
         versions_list = self.available_versions if self.available_versions else ["No Bible"]
         default_version = "BurmeseBible" if "BurmeseBible" in versions_list else versions_list[0]
@@ -273,10 +272,8 @@ class AndroidBibleApp(App):
         self.top_bar.add_widget(self.theme_btn)
         self.main_layout.add_widget(self.top_bar)
         
-        # --- Content Body Layout ---
         self.content_area = BoxLayout(orientation='vertical', spacing=5)
         
-        # --- Search Box ---
         self.search_bar = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(42), spacing=5)
         self.search_input = TextInput(hint_text="Search verses...", multiline=False, size_hint_x=0.78, font_size='14sp')
         if os.path.exists(DEFAULT_FONT): self.search_input.font_name = DEFAULT_FONT
@@ -286,7 +283,6 @@ class AndroidBibleApp(App):
         self.search_bar.add_widget(self.search_input)
         self.search_bar.add_widget(self.search_btn)
         
-        # --- Navigation Panel ---
         self.nav_panel = BoxLayout(orientation='vertical', spacing=5)
         
         self.nav_top_bar = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(30), spacing=5)
@@ -303,8 +299,8 @@ class AndroidBibleApp(App):
         self.nav_top_bar.add_widget(self.btn_my_notes)
         
         self.testament_bar = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(38), spacing=5)
-        self.ot_btn = Button(text="Old Testament (ဟောင်း)", font_size='12sp', background_color=[0.15, 0.35, 0.5, 1])
-        self.nt_btn = Button(text="New Testament (သစ်)", font_size='12sp', background_color=[0.25, 0.25, 0.25, 1])
+        self.ot_btn = Button(text="Old Testament", font_size='12sp', background_color=[0.15, 0.35, 0.5, 1])
+        self.nt_btn = Button(text="New Testament", font_size='12sp', background_color=[0.25, 0.25, 0.25, 1])
         if os.path.exists(DEFAULT_FONT):
             self.ot_btn.font_name = DEFAULT_FONT
             self.nt_btn.font_name = DEFAULT_FONT
@@ -319,14 +315,13 @@ class AndroidBibleApp(App):
         
         self.grid_scroll = ScrollView(effect_cls=ScrollEffect)
         
-        # --- Modification for Top Alignment ---
         self.grid_wrapper = BoxLayout(orientation='vertical', size_hint_y=None)
         
         self.grid_content = GridLayout(cols=2, spacing=8, size_hint_y=None)
         self.grid_content.bind(minimum_height=self.grid_content.setter('height'))
         
         self.grid_wrapper.add_widget(self.grid_content)
-        self.grid_wrapper.add_widget(BoxLayout(size_hint_y=1)) # Spacer to push grid up
+        self.grid_wrapper.add_widget(BoxLayout(size_hint_y=1)) 
         
         def _update_grid_wrapper_height(*args):
             self.grid_wrapper.height = max(self.grid_wrapper.minimum_height, self.grid_scroll.height)
@@ -335,12 +330,10 @@ class AndroidBibleApp(App):
         self.grid_scroll.bind(height=_update_grid_wrapper_height)
         
         self.grid_scroll.add_widget(self.grid_wrapper)
-        # ---------------------------------------
         
         self.content_area.add_widget(self.search_bar)
         self.content_area.add_widget(self.nav_panel)
         
-        # --- Display Text Containers ---
         self.text_views_container = BoxLayout(orientation='vertical', spacing=5, size_hint_y=None, height=0)
         
         self.view1_scroll = SwipeableScrollView(app_ref=self, do_scroll_x=False, do_scroll_y=True)
@@ -358,7 +351,6 @@ class AndroidBibleApp(App):
         
         self.view1_splitter = Splitter(sizable_from='bottom', size_hint_y=0.5, min_size=80)
         
-        # --- Bottom Tool Bars ---
         self.tool_bar = BoxLayout(orientation='horizontal', size_hint_y=None, height=dp(42), spacing=5)
         self.hl_btn = Button(text="Highlight", font_size='12sp', background_color=[0.25, 0.25, 0.25, 1])
         self.note_btn = Button(text="Note", font_size='12sp', background_color=[0.25, 0.25, 0.25, 1])
@@ -948,16 +940,23 @@ class AndroidBibleApp(App):
     def toggle_multi_view(self, instance):
         def _finish_toggle():
             self.update_text_views_layout()
-            self.display_bible_verses()
-            
+            if self.multi_view_btn.state == 'down':
+                self.verse_item_refs = [v for v in self.verse_item_refs if v not in self.page_layout_2.children]
+                self.populate_page(self.page_layout_2, self.version_spinner_2.text)
+                self.view2_scroll.scroll_y = self.view1_scroll.scroll_y
+            else:
+                self.verse_item_refs = [v for v in self.verse_item_refs if v not in self.page_layout_2.children]
+                self.page_layout_2.clear_widgets()
+                
         if instance.state == 'down':
             if self.version_spinner_2 not in self.top_bar.children:
-                self.top_bar.add_widget(self.version_spinner_2)
-                ver2 = self.version_spinner_2.text
-                if ver2 not in self.all_bibles_data:
-                    self.load_bible_version(ver2, callback=_finish_toggle)
-                else:
-                    _finish_toggle()
+                self.top_bar.add_widget(self.version_spinner_2, index=1)
+                
+            ver2 = self.version_spinner_2.text
+            if ver2 not in self.all_bibles_data:
+                self.load_bible_version(ver2, callback=_finish_toggle)
+            else:
+                _finish_toggle()
         else:
             if self.version_spinner_2 in self.top_bar.children:
                 self.top_bar.remove_widget(self.version_spinner_2)
@@ -978,13 +977,18 @@ class AndroidBibleApp(App):
 
     def on_version_changed(self, spinner, text):
         def _after_version_changed():
-            if self.back_btn not in self.nav_panel.children: 
-                self.refresh_books_grid()
-            else: 
-                self.on_book_selected(self.selected_book)
+            if spinner == self.version_spinner_1:
+                if self.back_btn not in self.nav_panel.children: 
+                    self.refresh_books_grid()
+                else: 
+                    self.on_book_selected(self.selected_book)
             
             if self.text_views_container.size_hint_y == 1:
-                self.display_bible_verses()
+                if spinner == self.version_spinner_2:
+                    self.verse_item_refs = [v for v in self.verse_item_refs if v not in self.page_layout_2.children]
+                    self.populate_page(self.page_layout_2, text)
+                else:
+                    self.display_bible_verses()
                 
         if text not in self.all_bibles_data:
             self.load_bible_version(text, callback=_after_version_changed)
@@ -1032,35 +1036,36 @@ class AndroidBibleApp(App):
                 if v_item not in self.verse_item_refs:
                     self.verse_item_refs.append(v_item)
 
+    # --- Optimized display_bible_verses (Deferred Frame-Splitting for Multi-View Chapter Lag Fix) ---
     def display_bible_verses(self):
         if not self.selected_book or not self.selected_chap:
             return
             
-        def _render_verses():
+        def _render_verses(dt=0):
             self.clear_selections()
             self.verse_item_refs.clear()
             self.populate_page(self.page_layout_1, self.version_spinner_1.text)
             
             if self.multi_view_btn.state == 'down':
-                def _render_view2():
+                def _render_view2(dt2=0):
                     self.populate_page(self.page_layout_2, self.version_spinner_2.text)
                     self.view1_scroll.scroll_y = 1.0
                     self.view2_scroll.scroll_y = 1.0
                     
                 ver2 = self.version_spinner_2.text
                 if ver2 not in self.all_bibles_data:
-                    self.load_bible_version(ver2, callback=_render_view2)
+                    self.load_bible_version(ver2, callback=lambda: Clock.schedule_once(_render_view2, 0))
                 else:
-                    _render_view2()
+                    Clock.schedule_once(_render_view2, 0)
             else:
                 self.view1_scroll.scroll_y = 1.0
                 self.view2_scroll.scroll_y = 1.0
                 
         ver1 = self.version_spinner_1.text
         if ver1 not in self.all_bibles_data:
-            self.load_bible_version(ver1, callback=_render_verses)
+            self.load_bible_version(ver1, callback=lambda: Clock.schedule_once(_render_verses, 0))
         else:
-            _render_verses()
+            Clock.schedule_once(_render_verses, 0)
 
     def execute_bible_search(self, instance):
         query = self.search_input.text.strip().replace('\u200b', '')
