@@ -1,6 +1,6 @@
 [app]
 title = Myanmar & Ethnic Bibles
-package.name = biblemyanmar
+package.name = myanmar&ethnicbibles
 package.domain = org.test
 source.dir = .
 source.include_exts = py,png,jpg,kv,xml,atlas,ttf,txt,json,db
