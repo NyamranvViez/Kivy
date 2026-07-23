@@ -1036,7 +1036,6 @@ class AndroidBibleApp(App):
                 if v_item not in self.verse_item_refs:
                     self.verse_item_refs.append(v_item)
 
-    # --- Optimized display_bible_verses (Deferred Frame-Splitting for Multi-View Chapter Lag Fix) ---
     def display_bible_verses(self):
         if not self.selected_book or not self.selected_chap:
             return
